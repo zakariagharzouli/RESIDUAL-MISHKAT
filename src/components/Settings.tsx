@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserData, UserSettings } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons, useIsNarrow } from './ui';
+import { Icon, Icons, useIsNarrow, PageHeader } from './ui';
 import { signOut } from '../lib/supabase';
 
 export const SettingsSection = ({
@@ -161,15 +161,8 @@ export const SettingsSection = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 32 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
-            {fr ? 'Paramètres' : 'الإعدادات'}
-          </div>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
-            {fr ? 'Personnalisation · accessibilité · données' : 'تخصيص · وصول · بيانات'}
-          </div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+        <PageHeader eyebrow={fr ? 'Profil, apparence, données' : 'الملف، المظهر، البيانات'} title={fr ? 'Réglages' : 'الإعدادات'}/>
         {saved && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: `${t.accentSoft}30`, color: t.accentBright, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             <Icon d={Icons.check} size={12} color={t.accentBright}/>

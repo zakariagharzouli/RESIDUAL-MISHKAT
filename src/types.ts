@@ -1,3 +1,4 @@
+import { reached, MATERIALS, Rarity } from './lib/trophies';
 export interface Surah {
   id: number;
   name: string;
@@ -584,6 +585,30 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
     rarity: 'rare',
     condition: (data) => data.surahs.filter(s => s.status === 'review').length >= 5
   },
+
+  // ── Trophées ajoutés avec la refonte (progression : lib/trophies.ts) ──
+  { id: 'verses_100', icon: 'BookOpen', title: 'Cent versets', titleAr: 'مئة آية', description: 'Mémorisez 100 versets au total', descriptionAr: 'احفظ 100 آية', color: '', rarity: 'common', condition: reached('verses_100') },
+  { id: 'verses_500', icon: 'BookOpen', title: 'Cinq cents versets', titleAr: 'خمسمئة آية', description: 'Mémorisez 500 versets au total', descriptionAr: 'احفظ 500 آية', color: '', rarity: 'rare', condition: reached('verses_500') },
+  { id: 'verses_1000', icon: 'BookOpen', title: 'Mille versets', titleAr: 'ألف آية', description: 'Mémorisez 1 000 versets au total', descriptionAr: 'احفظ 1000 آية', color: '', rarity: 'epic', condition: reached('verses_1000') },
+  { id: 'verses_3000', icon: 'Crown', title: 'Trois mille versets', titleAr: 'ثلاثة آلاف آية', description: 'Mémorisez 3 000 versets, près de la moitié du Coran', descriptionAr: 'احفظ 3000 آية، قرابة نصف القرآن', color: '', rarity: 'legendary', condition: reached('verses_3000') },
+  { id: 'surah_ikhlas', icon: 'Heart', title: 'Le tiers du Coran', titleAr: 'ثلث القرآن', description: 'Mémorisez Al-Ikhlâs, qui équivaut au tiers du Coran', descriptionAr: 'احفظ سورة الإخلاص، تعدل ثلث القرآن', color: '', rarity: 'common', condition: reached('surah_ikhlas') },
+  { id: 'muawwidhatayn', icon: 'Shield', title: 'Les deux protectrices', titleAr: 'المعوذتان', description: 'Mémorisez Al-Falaq et An-Nâs', descriptionAr: 'احفظ سورتي الفلق والناس', color: '', rarity: 'common', condition: reached('muawwidhatayn') },
+  { id: 'surah_baqara', icon: 'Crown', title: 'La plus longue', titleAr: 'سورة البقرة', description: 'Mémorisez Al-Baqarah, la plus longue sourate du Coran', descriptionAr: 'احفظ سورة البقرة، أطول سور القرآن', color: '', rarity: 'legendary', condition: reached('surah_baqara') },
+  { id: 'streak_100', icon: 'Flame', title: 'Cent jours', titleAr: 'مئة يوم', description: '100 jours de suite avec Mishkat', descriptionAr: '100 يوم متتالية', color: '', rarity: 'epic', condition: reached('streak_100') },
+  { id: 'streak_365', icon: 'Flame', title: 'Une année de lumière', titleAr: 'سنة من النور', description: '365 jours de suite avec Mishkat', descriptionAr: '365 يوماً متتالية', color: '', rarity: 'legendary', condition: reached('streak_365') },
+  { id: 'reading_100', icon: 'BookOpen', title: 'Lecteur assidu', titleAr: 'القارئ المواظب', description: 'Notez 100 versets lus dans le calendrier', descriptionAr: 'سجّل قراءة 100 آية في التقويم', color: '', rarity: 'common', condition: reached('reading_100') },
+  { id: 'reading_1000', icon: 'BookOpen', title: 'Mille versets lus', titleAr: 'ألف آية مقروءة', description: 'Notez 1 000 versets lus dans le calendrier', descriptionAr: 'سجّل قراءة 1000 آية في التقويم', color: '', rarity: 'rare', condition: reached('reading_1000') },
+  { id: 'prayers_full_day', icon: 'Moon', title: 'Cinq sur cinq', titleAr: 'الصلوات الخمس', description: 'Notez les cinq prières d\'une même journée', descriptionAr: 'سجّل الصلوات الخمس في يوم واحد', color: '', rarity: 'common', condition: reached('prayers_full_day') },
+  { id: 'prayers_full_week', icon: 'CalendarDays', title: 'Une semaine de prières', titleAr: 'أسبوع من الصلوات', description: 'Les cinq prières notées 7 jours de suite', descriptionAr: 'الصلوات الخمس 7 أيام متتالية', color: '', rarity: 'rare', condition: reached('prayers_full_week') },
+  { id: 'prayers_500', icon: 'Moon', title: 'Cinq cents prières', titleAr: 'خمسمئة صلاة', description: 'Notez 500 prières dans le calendrier', descriptionAr: 'سجّل 500 صلاة في التقويم', color: '', rarity: 'epic', condition: reached('prayers_500') },
+  { id: 'fast_first', icon: 'MoonStar', title: 'Premier jeûne', titleAr: 'أول صيام', description: 'Notez un jour de jeûne', descriptionAr: 'سجّل يوم صيام', color: '', rarity: 'common', condition: reached('fast_first') },
+  { id: 'fast_10', icon: 'MoonStar', title: 'Dix jeûnes', titleAr: 'عشرة أيام صيام', description: 'Notez 10 jours de jeûne', descriptionAr: 'سجّل 10 أيام صيام', color: '', rarity: 'rare', condition: reached('fast_10') },
+  { id: 'jours_blancs_1', icon: 'MoonStar', title: 'Les jours blancs', titleAr: 'الأيام البيض', description: 'Jeûnez les 13, 14 et 15 d\'un mois lunaire', descriptionAr: 'صم أيام 13 و14 و15 من شهر قمري', color: '', rarity: 'rare', condition: reached('jours_blancs_1') },
+  { id: 'jours_blancs_3', icon: 'MoonStar', title: 'Trois lunes', titleAr: 'ثلاثة أقمار', description: 'Jours blancs complets pendant trois mois', descriptionAr: 'الأيام البيض كاملة ثلاثة أشهر', color: '', rarity: 'epic', condition: reached('jours_blancs_3') },
+  { id: 'tasbih_10000_total', icon: 'Sparkles', title: 'Dix mille dhikr', titleAr: 'عشرة آلاف ذكر', description: '10 000 dhikr au total', descriptionAr: '10000 ذكر إجمالاً', color: '', rarity: 'legendary', condition: reached('tasbih_10000_total') },
+  { id: 'tajweed_page', icon: 'NotebookPen', title: 'Premier pas en tajweed', titleAr: 'أول خطوة في التجويد', description: 'Créez une page Tajweed dans le Diftar', descriptionAr: 'أنشئ صفحة تجويد في الدفتر', color: '', rarity: 'common', condition: reached('tajweed_page') },
+  { id: 'all_templates', icon: 'NotebookPen', title: 'Cahier complet', titleAr: 'الدفتر الكامل', description: 'Utilisez les dix modèles de page du Diftar', descriptionAr: 'استخدم نماذج الدفتر العشرة', color: '', rarity: 'epic', condition: reached('all_templates') },
+  { id: 'twenty_goals', icon: 'Target', title: 'Bâtisseur', titleAr: 'البنّاء', description: 'Accomplissez 20 objectifs', descriptionAr: 'أنجز 20 هدفاً', color: '', rarity: 'epic', condition: reached('twenty_goals') },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -741,21 +766,10 @@ export function checkLoginStreak(userData: UserData): { newStreak: number; isCon
 }
 
 export function getRarityColor(rarity: string): string {
-  switch (rarity) {
-    case 'common': return '#A8DADC';
-    case 'rare': return '#D4AF37';
-    case 'epic': return '#8B2635';
-    case 'legendary': return '#FFD700';
-    default: return '#A8DADC';
-  }
+  return (MATERIALS[rarity as Rarity] ?? MATERIALS.common).mid;
 }
 
 export function getRarityLabel(rarity: string, lang: 'fr' | 'ar'): string {
-  const labels: Record<string, { fr: string; ar: string }> = {
-    common:    { fr: 'Commun',     ar: 'شائع'   },
-    rare:      { fr: 'Rare',       ar: 'نادر'   },
-    epic:      { fr: 'Épique',     ar: 'ملحمي'  },
-    legendary: { fr: 'Légendaire', ar: 'أسطوري' }
-  };
-  return labels[rarity]?.[lang] || rarity;
+  const m = MATERIALS[rarity as Rarity];
+  return m ? m[lang] : rarity;
 }

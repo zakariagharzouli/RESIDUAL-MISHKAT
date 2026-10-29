@@ -226,7 +226,7 @@ const MENU_ITEMS = [
   { id: 'joursblancs',  labelFr: 'Jours Blancs',     labelAr: 'الأيام البيض',   icon: 'moonStar',  group: 'practice' },
   { id: 'calendar',     labelFr: 'Calendrier',       labelAr: 'التقويم',        icon: 'calendar',  group: 'progress' },
   { id: 'goals',        labelFr: 'Objectifs',        labelAr: 'الأهداف',        icon: 'target',    group: 'progress' },
-  { id: 'badges',       labelFr: 'Badges',           labelAr: 'الأوسمة',        icon: 'badge',     group: 'progress' },
+  { id: 'badges',       labelFr: 'Trophées',         labelAr: 'الأوسمة',        icon: 'badge',     group: 'progress' },
   { id: 'coloring',     labelFr: 'Coloriage',        labelAr: 'تلوين',          icon: 'palette',   group: 'progress' },
   { id: 'settings',     labelFr: 'Réglages',         labelAr: 'الإعدادات',      icon: 'settings',  group: 'system' },
 ];
@@ -494,4 +494,41 @@ export const useIsNarrow = () => {
     return () => window.removeEventListener('resize', check);
   }, []);
   return narrow;
+};
+
+// ── PageHeader : le même en-tête partout (sur-titre, titre, actions) ─────────
+export const PageHeader = ({ eyebrow, title, right }: { eyebrow?: React.ReactNode; title: React.ReactNode; right?: React.ReactNode }) => {
+  const t = useT();
+  const isMobile = useIsMobile();
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ minWidth: 0 }}>
+        {eyebrow && (
+          <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 500, marginBottom: 8 }}>{eyebrow}</div>
+        )}
+        <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 360, fontSize: isMobile ? 30 : 36, margin: 0, color: t.ink, letterSpacing: '-0.015em', lineHeight: 1.05 }}>{title}</h1>
+      </div>
+      {right && <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>{right}</div>}
+    </div>
+  );
+};
+
+// ── AnimatedNumber : compte jusqu'à la valeur au montage et à chaque changement ──
+export const AnimatedNumber = ({ value, duration = 900 }: { value: number; duration?: number }) => {
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { setShown(value); return; }
+    let raf = 0;
+    const from = 0, start = performance.now();
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - k, 3);
+      setShown(Math.round(from + (value - from) * eased));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{shown}</span>;
 };

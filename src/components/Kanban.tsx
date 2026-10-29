@@ -1,7 +1,7 @@
 import React from 'react';
 import { Surah, UserData } from '../types';
 import { useT } from '../lib/theme';
-import { useIsNarrow } from './ui';
+import { useIsNarrow, PageHeader } from './ui';
 import { playKanbanAdvance } from '../lib/sounds';
 
 const COLUMN_CONFIG_BASE = [
@@ -48,14 +48,7 @@ export const KanbanSection = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', ...(narrow ? {} : { height: '100%' }), gap: 20, paddingBottom: 16 }}>
-      <div>
-        <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
-          {fr ? 'Tableau de Suivi' : 'جدول المتابعة'}
-        </div>
-        <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
-          Kanban · {fr ? 'Cliquez pour avancer une étape' : 'انقر للتقدم خطوة'}
-        </div>
-      </div>
+      <PageHeader eyebrow={fr ? 'Touche une sourate pour la faire avancer' : 'انقر على سورة لتتقدم'} title={fr ? 'Suivi' : 'المتابعة'}/>
 
       <div style={{
         display: 'grid',

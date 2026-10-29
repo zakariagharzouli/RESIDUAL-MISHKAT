@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
+import { Icon, Icons, useIsNarrow, useIsMobile, AnimatedNumber } from './ui';
 import { Skeleton, SkeletonCard } from './Skeleton';
 
 const RESUME_KEY = 'mishkat_quran_last';
@@ -214,29 +214,32 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
         {/* ── Stats tiles row ────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
           {[
-            { icon: Icons.flame,    value: streak,                   label: fr ? 'Jours de suite'   : 'يوم متواصل',  color: t.accent,   shimmer: true },
-            { icon: Icons.book,     value: totalVersets,             label: fr ? 'Versets mémorisés' : 'آية محفوظة',  color: t.accent,   shimmer: false },
-            { icon: Icons.bookmark, value: `${memorizedCount}/114`,  label: fr ? 'Sourates'          : 'سورة',        color: t.accent,   shimmer: false },
-            { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, label: fr ? 'Badges' : 'شارة', color: '#a78bdb', shimmer: false },
+            { icon: Icons.flame,    value: streak,        suffix: '',    label: fr ? 'Jours de suite'    : 'يوم متواصل', to: 'calendar',     shimmer: true },
+            { icon: Icons.book,     value: totalVersets,  suffix: '',    label: fr ? 'Versets mémorisés' : 'آية محفوظة', to: 'memorization', shimmer: false },
+            { icon: Icons.bookmark, value: memorizedCount, suffix: '/114', label: fr ? 'Sourates'        : 'سورة',       to: 'memorization', shimmer: false },
+            { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, suffix: '', label: fr ? 'Trophées' : 'وسام', to: 'badges', shimmer: false },
           ].map((s, i) => (
-            <motion.div
+            <motion.button
               key={i}
+              onClick={() => onNavigate?.(s.to)}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', transition: { duration: 0.15 } }}
-              whileTap={{ scale: 0.96 }}
+              transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -3, transition: { duration: 0.15 } }}
+              whileTap={{ scale: 0.97 }}
               className={s.shimmer ? 'anim-shimmer' : ''}
-              style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'default' }}
+              style={{ ...card, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: 'left', color: t.ink }}
             >
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: `${s.color}16`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon d={s.icon} size={15} color={s.color}/>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: `${t.accent}16`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon d={s.icon} size={18} color={t.accent}/>
               </div>
-              <div>
-                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300, lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 3, letterSpacing: '0.08em' }}>{s.label}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: t.ink, fontWeight: 360, lineHeight: 1 }}>
+                  <AnimatedNumber value={s.value}/>{s.suffix && <span style={{ fontSize: 15, color: t.inkMute }}>{s.suffix}</span>}
+                </div>
+                <div style={{ fontSize: 12, color: t.inkMute, marginTop: 5 }}>{s.label}</div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
 

@@ -1,5 +1,6 @@
 import { UserData, Badge, BADGE_DEFINITIONS, checkLoginStreak } from '../types';
 import confetti from 'canvas-confetti';
+import { trophyProgress, MATERIALS } from './trophies';
 
 export interface BadgeUnlockResult {
   newBadges: Badge[];
@@ -53,24 +54,13 @@ export function updateLoginStreak(userData: UserData): UserData {
  * Animation de célébration quand un badge est débloqué
  */
 export function celebrateBadgeUnlock(badge: Badge): void {
-  const colors = {
-    common: ['#A8DADC', '#B7E4C7', '#ffffff'],
-    rare: ['#D4AF37', '#F4A261', '#FFD700'],
-    epic: ['#8B2635', '#E63946', '#FF6B6B'],
-    legendary: ['#FFD700', '#FFA500', '#FF4500', '#FF6347']
-  };
-  const badgeColors = colors[badge.rarity] || colors.common;
-
-  confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: badgeColors, disableForReducedMotion: true, zIndex: 9999 });
-  setTimeout(() => {
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.7 }, colors: badgeColors, disableForReducedMotion: true, zIndex: 9999, shapes: ['circle', 'square'] });
-  }, 200);
-
-  if (badge.rarity === 'legendary') {
-    setTimeout(() => {
-      confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: badgeColors, disableForReducedMotion: true, zIndex: 9999, scalar: 1.2 });
-    }, 400);
-  }
+  // Pluie d'éclats dans la matière de la médaille ; plus dense pour les plus rares
+  const m = MATERIALS[badge.rarity] ?? MATERIALS.common;
+  const colors = [m.light, m.mid, m.dark, '#FFE7A3'];
+  const power = { common: 0.5, rare: 0.75, epic: 1, legendary: 1.4 }[badge.rarity] ?? 0.5;
+  const base = { origin: { y: 0.42 }, colors, disableForReducedMotion: true, zIndex: 10001, ticks: 220, gravity: 0.7, scalar: 0.9 };
+  confetti({ ...base, particleCount: Math.round(90 * power), spread: 70, startVelocity: 38 });
+  setTimeout(() => confetti({ ...base, particleCount: Math.round(60 * power), spread: 110, startVelocity: 30, shapes: ['circle'] }), 180);
 }
 
 export function formatUnlockDate(timestamp: number, lang: 'fr' | 'ar'): string {
@@ -122,6 +112,8 @@ export function getNextBadgeToUnlock(userData: UserData): Badge | null {
 }
 
 export function getBadgeProgress(userData: UserData, badgeId: string): number {
+  const p = trophyProgress(userData, badgeId);
+  if (p) return Math.min(100, (p[0] / p[1]) * 100);
   switch (badgeId) {
     case 'first_surah':        return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 1) * 100);
     case 'five_surahs':        return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 5) * 100);

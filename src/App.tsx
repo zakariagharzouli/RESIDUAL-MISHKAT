@@ -21,7 +21,8 @@ import { JoursBlancsSection } from './components/JoursBlancs';
 import { AdminSection } from './components/Admin';
 import localforage from 'localforage';
 import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
-import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
+import { checkAndUnlockBadges } from './lib/badgeEngine';
+import { TrophyUnlockOverlay } from './components/Trophy';
 import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
 import { AuthScreen, REMEMBER_KEY, SESSION_ALIVE_KEY } from './components/Auth';
 import { WelcomeSplash } from './components/WelcomeSplash';
@@ -75,11 +76,8 @@ export default function App() {
       const { newBadges } = checkAndUnlockBadges(next);
       if (newBadges.length > 0) {
         const updated = { ...next, badges: [...next.badges, ...newBadges] };
-        setNewlyUnlocked(newBadges);
+        setNewlyUnlocked(prevNew => [...prevNew, ...newBadges.filter(b => !prevNew.some(p => p.id === b.id))]);
         playBadgeUnlock();
-        newBadges.forEach((badge, i) => {
-          setTimeout(() => celebrateBadgeUnlock(badge), i * 800);
-        });
         return updated;
       }
       return next;
@@ -210,6 +208,7 @@ export default function App() {
             loginStreak: 1, lastLoginDate: today, tasbihSessionBest: 0,
             settings: { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
           };
+          initial.badges = checkAndUnlockBadges(initial).newBadges;
           setUserData(initial);
           setShowOnboarding(true);
         }
@@ -412,11 +411,13 @@ export default function App() {
       {/* Full-screen layout */}
       <div id="mishkat-app-root" style={{ '--brand-primary': t.accent, '--brand-secondary': t.accentBright, '--brand-accent': t.accent, '--brand-text-muted': t.inkMute, '--border-subtle': t.line, '--brand-bg': t.bg, '--brand-bg-soft': t.bgSoft, width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' } as React.CSSProperties}>
         {/* Geometric background pattern */}
-        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.06, pointerEvents: 'none', zIndex: 0 }}>
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: isDark ? 0.045 : 0.07, pointerEvents: 'none', zIndex: 0 }}>
           <defs>
-            <pattern id="app-pat" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.7"/>
-              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.7" transform="rotate(45 40 40)"/>
+            {/* Khatam : étoile à huit branches, en treillis discret */}
+            <pattern id="app-pat" x="0" y="0" width="96" height="96" patternUnits="userSpaceOnUse">
+              <path d="M48 30l5.3 12.7L66 48l-12.7 5.3L48 66l-5.3-12.7L30 48l12.7-5.3z" fill="none" stroke={t.accent} strokeWidth="0.8"/>
+              <path d="M48 18v12M48 66v12M18 48h12M66 48h12" stroke={t.accent} strokeWidth="0.6"/>
+              <circle cx="0" cy="0" r="2" fill={t.accent}/><circle cx="96" cy="0" r="2" fill={t.accent}/><circle cx="0" cy="96" r="2" fill={t.accent}/><circle cx="96" cy="96" r="2" fill={t.accent}/>
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#app-pat)"/>
@@ -453,7 +454,7 @@ export default function App() {
                   {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
                   {activeTab === 'memorization' && <MemorizationSection {...commonProps}/>}
                   {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
-                  {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
+                  {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang}/>}
                   {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
                   {activeTab === 'quran'        && <QuranSection userData={userData!} lang={lang} />}
                   {activeTab === 'adhkar'       && <AdhkarSection lang={lang} />}
@@ -495,6 +496,11 @@ export default function App() {
           </button>
         )}
       </div>
+
+      {/* Célébration des trophées, visible depuis n'importe quel écran */}
+      {newlyUnlocked.length > 0 && (
+        <TrophyUnlockOverlay badges={newlyUnlocked} lang={lang} onDone={() => setNewlyUnlocked([])}/>
+      )}
 
       {/* Onboarding modal */}
       {showOnboarding && (
