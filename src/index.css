@@ -359,3 +359,10 @@ button:not(:disabled):hover { filter: brightness(1.04) saturate(1.06); }
 
 /* Écran de chargement : le logo respire doucement */
 @keyframes mk-breathe { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.06); opacity: 1; } }
+
+/* Accueil : étoiles et lumière de la grande image */
+@keyframes mk-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+.mk-twinkle { animation: mk-twinkle 3.2s ease-in-out infinite; }
+@keyframes mk-glow { 0%, 100% { transform: translate(0, 0); opacity: 0.8; } 50% { transform: translate(18%, 6%); opacity: 1; } }
+.mk-glow { animation: mk-glow 14s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .mk-twinkle, .mk-glow { animation: none; } }
