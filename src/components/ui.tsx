@@ -52,6 +52,7 @@ export const Icons = {
   globe:     <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></>,
   download:  <><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></>,
   upload:    <><path d="M12 21V9M6 13l6-6 6 6M4 3h16"/></>,
+  flower:    <><circle cx="12" cy="8" r="2.2"/><path d="M12 5.8C11 3.5 13 2 12 2M14.2 8c2.3-1 3.8 1 3.8 0M12 10.2c1 2.3-1 3.8 0 3.8M9.8 8C7.5 9 6 7 6 8"/><path d="M12 10.5V22M12 17c-3 0-5-2-5-4 3 0 5 2 5 4zM12 19c3 0 5-2 5-4-3 0-5 2-5 4z"/></>,
   share:     <><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.9l7.6-4.6M8.2 13.1l7.6 4.6"/></>,
   eye:       <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></>,
   shield:    <><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></>,
@@ -229,6 +230,7 @@ const MENU_ITEMS = [
   { id: 'calendar',     labelFr: 'Calendrier',       labelAr: 'التقويم',        icon: 'calendar',  group: 'progress' },
   { id: 'goals',        labelFr: 'Objectifs',        labelAr: 'الأهداف',        icon: 'target',    group: 'progress' },
   { id: 'badges',       labelFr: 'Trophées',         labelAr: 'الأوسمة',        icon: 'badge',     group: 'progress' },
+  { id: 'garden',       labelFr: 'Mon jardin',       labelAr: 'حديقتي',         icon: 'flower',    group: 'progress' },
   { id: 'coloring',     labelFr: 'Coloriage',        labelAr: 'تلوين',          icon: 'palette',   group: 'progress' },
   { id: 'settings',     labelFr: 'Réglages',         labelAr: 'الإعدادات',      icon: 'settings',  group: 'system' },
 ];
