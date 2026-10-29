@@ -458,7 +458,7 @@ export default function App() {
         </div>
 
         {/* Main content */}
-        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 6 }}

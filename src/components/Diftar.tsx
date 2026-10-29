@@ -32,6 +32,14 @@ const PAPER_COLOR_NAMES: Record<string, string> = {
   '#2C2C3A': 'Anthracite', '#3E2723': 'Moka',
 };
 
+/** Couleur de texte lisible sur un fond donné (encre sombre ou blanc). */
+const readableOn = (hex: string) => {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return lum > 0.62 ? '#3a2a12' : '#ffffff';
+};
+
 const PAPER_COLORS = [
   { value: '#fdfcf8', label: 'Crème' },
   { value: '#ffffff', label: 'Blanc' },
@@ -66,7 +74,7 @@ const EMOJI_LIST = [
   '👍','❤️','⭐','✨','🎉','🏆','🎯','💡','✅','💪',
   '😊','😍','🙏','🤍','💎','📖','✍️','🌟','🔥','🎊',
   '🌺','🌸','🌼','💐','🦋','🌿','🌈','🌙','☀️','🕊️',
-  '🤲','🕌','📿','☪️','🕋','🌙','🌸','🤲','💚','🫶',
+  '🤲','🕌','📿','☪️','🕋','🌹','🍃','🏵️','💚','🫶',
 ];
 
 // All shapes, organized by category
@@ -193,8 +201,8 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   // Stylus / palm-rejection
   const [penEverDetected, setPenEverDetected] = useState(false);
-  const [stylusMode, setStylusMode]         = useState(true);
-  const stylusModeRef = useRef(true);
+  const [stylusMode, setStylusMode]         = useState(false);
+  const stylusModeRef = useRef(false);
   // Zoom
   const [zoom, setZoom]                     = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
@@ -230,10 +238,10 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   }, []);
 
   useEffect(() => {
-    if (activePageId && !localStorage.getItem('diftar_onboarding_v2')) {
+    if (penEverDetected && !localStorage.getItem('diftar_onboarding_v2')) {
       setShowOnboarding(true);
     }
-  }, [activePageId]);
+  }, [penEverDetected]);
 
   // Keep ref in sync for event handlers
   useEffect(() => {
@@ -797,7 +805,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
 
   useEffect(() => {
     if (!penEverDetected) return;
-    setToastMessage( lang === 'fr' ? 'Stylet détecté — le doigt scrolle, le stylet dessine' : 'ڡلم#ال ٮشاف#اك م#ٮ للرسم ڡلم#ال ،ٮمرير#لل ع 4الإصٮ ;( ');
+    setToastMessage(lang === 'fr' ? 'Stylet détecté : le doigt fait défiler, le stylet dessine' : 'تم اكتشاف القلم: الإصبع للتمرير والقلم للرسم');
     const timer = setTimeout(() => setToastMessage(null), 4000);
     return () => clearTimeout(timer);
   }, [penEverDetected, lang]);
@@ -1804,7 +1812,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                         <button key={pc.value} onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
                           style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, border: `1px solid`, cursor: 'pointer', fontSize: 10, fontWeight: 700, background: pc.value,
                             borderColor: paperColor === pc.value ? t.accent : 'rgba(139,38,53,0.15)',
-                            color: t.accent,
+                            color: readableOn(pc.value),
                             boxShadow: paperColor === pc.value ? `0 0 0 2px ${t.accent}` : 'none' }}>
                           {pc.label}
                         </button>
