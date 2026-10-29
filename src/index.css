@@ -356,3 +356,6 @@ button:not(:disabled):hover { filter: brightness(1.04) saturate(1.06); }
 @media (prefers-reduced-motion: reduce) {
   .mk-glow, .mk-drift, .mk-shine::after { animation: none !important; }
 }
+
+/* Écran de chargement : le logo respire doucement */
+@keyframes mk-breathe { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.06); opacity: 1; } }

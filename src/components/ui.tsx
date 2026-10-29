@@ -352,8 +352,8 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
     }}>
       {/* Logo + close button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px' }}>
-        <LanternMark size={30} color={t.accent}/>
-        <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, color: t.ink, letterSpacing: '0.32em', textTransform: 'uppercase', flex: 1 }}>Mishkat</div>
+        <img src="/icon-192.png" alt="" width={34} height={34} style={{ borderRadius: 10, flexShrink: 0 }}/>
+        <div style={{ fontFamily: 'Fraunces, serif', fontSize: 19, color: t.ink, flex: 1, lineHeight: 1 }}>Mishkat</div>
         <button onClick={handleClose}
           style={{ width: 26, height: 26, borderRadius: 6, background: t.card, border: `1px solid ${t.line}`, color: t.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: lang === 'ar' ? 'scaleX(-1)' : 'none' }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

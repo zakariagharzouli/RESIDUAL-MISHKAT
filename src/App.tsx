@@ -406,7 +406,7 @@ export default function App() {
   if (!authChecked && !localOnly) {
     return (
       <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <LanternMark size={48} color={isDark ? '#d4a64a' : '#c8962a'}/>
+        <img src="/icon-192.png" alt="Mishkat" width={72} height={72} style={{ borderRadius: 20, animation: 'mk-breathe 1.8s ease-in-out infinite' }}/>
       </div>
     );
   }
@@ -426,7 +426,7 @@ export default function App() {
   if (!userData) {
     return (
       <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <LanternMark size={48} color={isDark ? '#d4a64a' : '#c8962a'}/>
+        <img src="/icon-192.png" alt="Mishkat" width={72} height={72} style={{ borderRadius: 20, animation: 'mk-breathe 1.8s ease-in-out infinite' }}/>
       </div>
     );
   }
