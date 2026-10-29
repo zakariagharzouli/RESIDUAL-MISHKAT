@@ -19,13 +19,15 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('SW registered!', reg))
-            .catch(err => console.log('SW error!', err));
-        });
-      }
+      // Filet de sécurité : si l'app ne démarre pas en 10 s (cache abîmé, ancienne
+      // version bloquée), on vide le cache et on recharge une seule fois.
+      setTimeout(function () {
+        if (window.__mishkatBooted) return;
+        try { if (sessionStorage.getItem('mishkat_recovered')) return; sessionStorage.setItem('mishkat_recovered', '1'); } catch (e) {}
+        var regs = navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }) : Promise.resolve();
+        var cs = window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : Promise.resolve();
+        Promise.all([regs, cs]).then(function () { location.reload(); }, function () { location.reload(); });
+      }, 10000);
     </script>
   </body>
 </html>
