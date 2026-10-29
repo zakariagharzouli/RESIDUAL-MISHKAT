@@ -20,6 +20,7 @@ import { QuranSection } from './components/Quran';
 import { AdhkarSection } from './components/Adhkar';
 import { QuizSection } from './components/Quiz';
 import { JoursBlancsSection } from './components/JoursBlancs';
+import { StudioSection } from './components/Studio';
 import { AdminSection } from './components/Admin';
 import localforage from 'localforage';
 import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
@@ -482,6 +483,7 @@ export default function App() {
                   {activeTab === 'adhkar'       && <AdhkarSection lang={lang} />}
                   {activeTab === 'quiz'         && <QuizSection lang={lang} />}
                   {activeTab === 'joursblancs'  && <JoursBlancsSection {...commonProps}/>}
+                  {activeTab === 'studio'       && <StudioSection userData={userData} lang={lang}/>}
                   {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
                   {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
                 </div>
