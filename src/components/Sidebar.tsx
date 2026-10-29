@@ -127,7 +127,7 @@ export const Sidebar = ({
                   <img src="/favicon-96x96.png" alt="Mishkat" className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <h1 className="text-gradient leading-none" style={{ fontFamily: "'Libre Baskerville', serif", fontWeight: 700, fontSize: '18px' }}>
+                  <h1 className="text-gradient leading-none" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: '18px' }}>
                     Mishkat
                   </h1>
                   <p className="text-[8px] uppercase tracking-[0.3em] mt-0.5 font-bold"

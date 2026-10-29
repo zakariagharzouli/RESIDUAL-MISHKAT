@@ -312,3 +312,7 @@ button { cursor: pointer; border: none; background: none; }
   animation: materialisation .5s cubic-bezier(.2,.8,.2,1) both;
   animation-delay: calc(var(--idx, 0) * 55ms);
 }
+
+/* Navigation mobile : feuille « Plus » */
+@keyframes mk-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mk-sheet { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }

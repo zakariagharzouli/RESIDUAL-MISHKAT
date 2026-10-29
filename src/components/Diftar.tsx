@@ -8,16 +8,16 @@ import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
 
 // Page templates
 const PAGE_TEMPLATES = [
-  { type: 'revision',   icon: '📖', labelFr: 'Révision',   labelAr: 'مراجعة',   paperStyle: 'lines'        as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Révision',      ar: 'مراجعة'      } },
-  { type: 'tafsir',     icon: '🔍', labelFr: 'Tafsir',     labelAr: 'تفسير',    paperStyle: 'arabesque'    as const, paperColor: '#f4ecd8', defaultTitle: { fr: 'Tafsir',        ar: 'تفسير'       } },
-  { type: 'dates',      icon: '📅', labelFr: 'Planning',   labelAr: 'تخطيط',    paperStyle: 'grid'         as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Planning',      ar: 'تخطيط'       } },
-  { type: 'objectives', icon: '🎯', labelFr: 'Objectifs',  labelAr: 'أهداف',    paperStyle: 'dots'         as const, paperColor: '#fff0f3', defaultTitle: { fr: 'Objectifs',     ar: 'أهداف'       } },
-  { type: 'vocab',      icon: '📝', labelFr: 'Vocabulaire',labelAr: 'مفردات',   paperStyle: 'music'        as const, paperColor: '#f8f4ff', defaultTitle: { fr: 'Vocabulaire',   ar: 'مفردات'      } },
-  { type: 'dua',        icon: '🤲', labelFr: "Dou'a",      labelAr: 'دعاء',     paperStyle: 'floral'       as const, paperColor: '#f4f8ec', defaultTitle: { fr: "Dou'a",        ar: 'دعاء'        } },
-  { type: 'notes',      icon: '💡', labelFr: 'Notes',      labelAr: 'ملاحظات',  paperStyle: 'diamond'      as const, paperColor: '#fffbe6', defaultTitle: { fr: 'Notes rapides', ar: 'ملاحظات سريعة'} },
-  { type: 'schema',     icon: '🗺️', labelFr: 'Schéma',     labelAr: 'مخطط',     paperStyle: 'hexagonal'    as const, paperColor: '#e8f4fb', defaultTitle: { fr: 'Schéma',        ar: 'مخطط ذهني'   } },
-  { type: 'tajweed',    icon: '🎵', labelFr: 'Tajweed',    labelAr: 'تجويد',    paperStyle: 'islamic_star' as const, paperColor: '#fff4e6', defaultTitle: { fr: 'Tajweed',       ar: 'تجويد'       } },
-  { type: 'custom',     icon: '✨', labelFr: 'Libre',      labelAr: 'حر',       paperStyle: 'blank'        as const, paperColor: '#ffffff',  defaultTitle: { fr: 'Nouvelle Page', ar: 'صفحة جديدة'  } },
+  { type: 'revision',   icon: 'book', labelFr: 'Révision',   labelAr: 'مراجعة',   paperStyle: 'lines'        as const, paperColor: '#fdfcf8', descFr: "Réciter et noter ses erreurs", descAr: 'تسميع وتدوين الأخطاء', defaultTitle: { fr: 'Révision',      ar: 'مراجعة'      } },
+  { type: 'tafsir',     icon: 'search', labelFr: 'Tafsir',     labelAr: 'تفسير',    paperStyle: 'arabesque'    as const, paperColor: '#f4ecd8', descFr: "Le sens des versets", descAr: 'معاني الآيات', defaultTitle: { fr: 'Tafsir',        ar: 'تفسير'       } },
+  { type: 'dates',      icon: 'calendar', labelFr: 'Planning',   labelAr: 'تخطيط',    paperStyle: 'grid'         as const, paperColor: '#fdfcf8', descFr: "Organiser sa semaine", descAr: 'تنظيم الأسبوع', defaultTitle: { fr: 'Planning',      ar: 'تخطيط'       } },
+  { type: 'objectives', icon: 'target', labelFr: 'Objectifs',  labelAr: 'أهداف',    paperStyle: 'dots'         as const, paperColor: '#fff0f3', descFr: "Ses objectifs du mois", descAr: 'أهداف الشهر', defaultTitle: { fr: 'Objectifs',     ar: 'أهداف'       } },
+  { type: 'vocab',      icon: 'list', labelFr: 'Vocabulaire',labelAr: 'مفردات',   paperStyle: 'music'        as const, paperColor: '#f8f4ff', descFr: "Mots et leur sens", descAr: 'الكلمات ومعانيها', defaultTitle: { fr: 'Vocabulaire',   ar: 'مفردات'      } },
+  { type: 'dua',        icon: 'heart', labelFr: "Dou'a",      labelAr: 'دعاء',     paperStyle: 'floral'       as const, paperColor: '#f4f8ec', descFr: "Invocations à garder", descAr: 'أدعية للحفظ', defaultTitle: { fr: "Dou'a",        ar: 'دعاء'        } },
+  { type: 'notes',      icon: 'edit', labelFr: 'Notes',      labelAr: 'ملاحظات',  paperStyle: 'diamond'      as const, paperColor: '#fffbe6', descFr: "Prendre des notes vite", descAr: 'ملاحظات سريعة', defaultTitle: { fr: 'Notes rapides', ar: 'ملاحظات سريعة'} },
+  { type: 'schema',     icon: 'layers', labelFr: 'Schéma',     labelAr: 'مخطط',     paperStyle: 'hexagonal'    as const, paperColor: '#e8f4fb', descFr: "Carte mentale", descAr: 'خريطة ذهنية', defaultTitle: { fr: 'Schéma',        ar: 'مخطط ذهني'   } },
+  { type: 'tajweed',    icon: 'wind', labelFr: 'Tajweed',    labelAr: 'تجويد',    paperStyle: 'islamic_star' as const, paperColor: '#fff4e6', descFr: "Règles de lecture", descAr: 'أحكام التلاوة', defaultTitle: { fr: 'Tajweed',       ar: 'تجويد'       } },
+  { type: 'custom',     icon: 'sparkle', labelFr: 'Libre',      labelAr: 'حر',       paperStyle: 'blank'        as const, paperColor: '#ffffff',  descFr: "Page blanche", descAr: 'صفحة فارغة', defaultTitle: { fr: 'Nouvelle Page', ar: 'صفحة جديدة'  } },
 ];
 
 const PAPER_COLOR_NAMES: Record<string, string> = {
@@ -1191,7 +1191,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     };
 
     return (
-      <div ref={libraryContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
+      <div ref={libraryContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: narrow ? '16px 14px 100px' : '26px 28px 36px' }}>
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
@@ -1328,7 +1328,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                             {fr ? 'Modifié ' : 'عُدِّل '}{getTimeAgo(page.lastSaved)}
                           </div>
                         </div>
-                        <span style={{ fontSize: 15, opacity: 0.35, flexShrink: 0 }}>{tpl?.icon}</span>
+                        {tpl && <span style={{ opacity: 0.45, flexShrink: 0, display: 'inline-flex' }}><Icon d={(Icons as Record<string, React.ReactNode>)[tpl.icon]} size={15}/></span>}
                       </div>
                     </div>
                   </div>
@@ -1414,13 +1414,13 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                     onMouseEnter={e => (e.currentTarget.style.borderColor = t.accent)}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = t.line)}
                   >
-                    <span style={{ fontSize: 28 }}>{tpl.icon}</span>
+                    <span style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${t.accent}14`, color: t.accent }}><Icon d={(Icons as Record<string, React.ReactNode>)[tpl.icon]} size={22}/></span>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: t.accent }}>
                         {fr ? tpl.labelFr : tpl.labelAr}
                       </div>
-                      <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, color: t.inkMute, marginTop: 2 }}>
-                        {tpl.paperStyle}
+                      <div style={{ fontSize: 11.5, fontWeight: 500, color: t.inkMute, marginTop: 3 }}>
+                        {fr ? tpl.descFr : tpl.descAr}
                       </div>
                     </div>
                   </button>

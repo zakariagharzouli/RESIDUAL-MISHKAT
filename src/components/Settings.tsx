@@ -194,7 +194,7 @@ export const SettingsSection = ({
       ) : null}
 
       {/* 2-column grid: sidebar + content */}
-      <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '200px 1fr', gap: 14, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : '200px minmax(0, 1fr)', gap: 14, alignItems: 'start' }}>
 
         {/* Sidebar nav — desktop only */}
         {!narrow && (
@@ -220,7 +220,7 @@ export const SettingsSection = ({
         <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
           {fr ? 'Votre progression' : 'تقدمك'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
           {[
             { value: memorizedCount,          label: fr ? 'Sourates'      : 'السور'    },
             { value: completedGoals,           label: fr ? 'Objectifs'     : 'الأهداف'  },
@@ -322,7 +322,7 @@ export const SettingsSection = ({
           {/* Theme swatches — 3 color dots */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 10 }}>{fr ? 'Thème' : 'السمة'}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
               {themes.map(theme => {
                 const isActive = settings.theme === theme.id;
                 return (

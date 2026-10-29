@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { ThemeContext, THEMES, DARK_THEMES, Theme } from './lib/theme';
 import { OfflineBanner } from './components/OfflineBanner';
@@ -196,6 +196,8 @@ export default function App() {
           if (session?.user) {
             parsed.settings = { ...parsed.settings, isAdmin: isAdminEmail(session.user.email) };
           }
+          const { newBadges } = checkAndUnlockBadges(parsed);
+          if (newBadges.length > 0) parsed.badges = [...parsed.badges, ...newBadges];
           setUserData(parsed);
         } else {
           const initial: UserData = {
@@ -245,41 +247,29 @@ export default function App() {
     return () => clearInterval(id);
   }, [supabaseUserId, userData?.settings?.autoSaveInterval]);
 
-  // ── Notifications toutes les 15 min ─────────────────────────────────────
+  // ── Rappel quotidien : une seule notification par jour, à l'heure choisie ──
   useEffect(() => {
-    if (!userData || userData.settings?.notifications === false) return;
+    const s = userData?.settings;
+    if (!s || s.notifications === false || !s.dailyReminder) return;
     if (!('Notification' in window)) return;
-    const NOTIFS_FR = [
-      { title: 'Mishkat · Rappel prière 🕌', body: 'N\'oublie pas de valider tes prières du jour dans le calendrier.' },
-      { title: 'Mishkat · Tasbih 📿',        body: 'Prends un moment pour ton dhikr — 33× Subhânallah.' },
-      { title: 'Mishkat · Mémorisation 📖',  body: 'Continue ta mémorisation — consulte ton suivi Kanban.' },
-      { title: 'Mishkat · Rappel 🌙',        body: 'Revise une sourate aujourd\'hui. Tu es si proche de ton objectif !' },
-      { title: 'Mishkat · Objectifs 🎯',     body: 'Consulte tes objectifs du mois et coche ce qui est fait.' },
-    ];
-    const NOTIFS_AR = [
-      { title: 'مشكاة · تذكير الصلاة 🕌', body: 'لا تنسَ تأكيد صلواتك في التقويم.' },
-      { title: 'مشكاة · التسبيح 📿',      body: 'خصص لحظة لذكر الله — ٣٣× سبحان الله.' },
-      { title: 'مشكاة · الحفظ 📖',        body: 'واصل حفظك — راجع متابعتك في كانبان.' },
-      { title: 'مشكاة · تذكير 🌙',        body: 'راجع سورة اليوم. أنت قريب جداً من هدفك!' },
-    ];
-    const msgs = lang === 'fr' ? NOTIFS_FR : NOTIFS_AR;
-    let idx = 0;
-    const fire = () => {
+    const check = () => {
       if (Notification.permission !== 'granted') return;
-      const m = msgs[idx % msgs.length];
-      navigator.serviceWorker?.ready.then(reg =>
-        reg.showNotification(m.title, { body: m.body, icon: '/icon-192.png', badge: '/favicon-96x96.png', tag: 'mishkat-reminder' })
-      ).catch(() => new Notification(m.title, { body: m.body, icon: '/icon-192.png' }));
-      idx++;
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      if (localStorage.getItem('mishkat_last_notif_date') === today) return;
+      const [hh, mm] = s.dailyReminder.split(':').map(Number);
+      if (now.getHours() < hh || (now.getHours() === hh && now.getMinutes() < mm)) return;
+      localStorage.setItem('mishkat_last_notif_date', today);
+      const title = 'Mishkat';
+      const body = lang === 'fr' ? 'Ta séance de révision du jour t\'attend.' : 'جلسة المراجعة اليومية بانتظارك.';
+      navigator.serviceWorker?.ready
+        .then(reg => reg.showNotification(title, { body, icon: '/icon-192.png', badge: '/favicon-96x96.png', tag: 'mishkat-reminder' }))
+        .catch(() => new Notification(title, { body, icon: '/icon-192.png' }));
     };
-    if (Notification.permission === 'default') {
-      Notification.requestPermission().then(p => {
-        if (p === 'granted') fire();
-      });
-    }
-    const id = setInterval(fire, 15 * 60 * 1000);
+    check();
+    const id = setInterval(check, 60 * 1000);
     return () => clearInterval(id);
-  }, [lang, userData?.settings?.notifications]);
+  }, [lang, userData?.settings?.notifications, userData?.settings?.dailyReminder]);
 
   // ── SW update ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -447,13 +437,11 @@ export default function App() {
 
         {/* Main content */}
         <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 14, scale: 0.975, filter: 'blur(4px)' }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -8, scale: 0.975, filter: 'blur(4px)' }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
               style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
             >
               {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
@@ -476,7 +464,6 @@ export default function App() {
                 </div>
               )}
             </motion.div>
-          </AnimatePresence>
         </main>
 
         {/* Mobile bottom nav */}
