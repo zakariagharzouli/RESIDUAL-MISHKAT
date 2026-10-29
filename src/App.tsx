@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import { cheerFor } from './lib/encouragements';
 import { WhatsNew, WHATS_NEW_KEY } from './components/WhatsNew';
+import { FlowerGiftOverlay } from './components/Flowers';
+import { FlowerDef, rollFlower, addFlower, todayKey } from './lib/flowers';
 import { ThemeContext, THEMES, DARK_THEMES, Theme } from './lib/theme';
 import { OfflineBanner } from './components/OfflineBanner';
 import { AppSidebar, LanternMark, useIsMobile } from './components/ui';
@@ -60,6 +62,7 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [diftarEditing, setDiftarEditing] = useState(false);
+  const [flowerGifts, setFlowerGifts] = useState<{ f: FlowerDef; reason: 'jour' | 'sourate' }[]>([]);
 
   const isDark = userData?.settings?.darkMode ?? false;
   const themeMap = isDark ? DARK_THEMES : THEMES;
@@ -81,6 +84,7 @@ export default function App() {
   const langRef = useRef(lang);
   useEffect(() => { langRef.current = lang; }, [lang]);
   const lastCheerRef = useRef(0);
+  const memGiftRef = useRef<FlowerDef | null>(null);
   const cheer = (prev: UserData, next: UserData) => {
     const msg = cheerFor(prev, next, langRef.current);
     if (!msg || Date.now() - lastCheerRef.current < 6000) return;
@@ -91,8 +95,17 @@ export default function App() {
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
       if (!prev) return prev;
-      const next = typeof updater === 'function' ? updater(prev) : updater;
+      let next = typeof updater === 'function' ? updater(prev) : updater;
       cheer(prev, next);
+      // Une sourate mémorisée offre une fleur rare ou mieux
+      const newlyMem = next.surahs.some(s => s.status === 'memorized' && prev.surahs.find(p => p.id === s.id)?.status !== 'memorized');
+      if (newlyMem) {
+        const f = rollFlower(next, 'rare');
+        next = addFlower(next, f, 'sourate');
+        // L'updater peut être rejoué (mode strict) : seule la dernière fleur tirée, celle gardée, est annoncée
+        memGiftRef.current = f;
+        setTimeout(() => { const g = memGiftRef.current; if (g) { memGiftRef.current = null; setFlowerGifts(q => [...q, { f: g, reason: 'sourate' }]); } }, 0);
+      }
       const { newBadges } = checkAndUnlockBadges(next);
       if (newBadges.length > 0) {
         const updated = { ...next, badges: [...next.badges, ...newBadges] };
@@ -269,6 +282,17 @@ export default function App() {
     return () => clearInterval(id);
   }, [supabaseUserId, userData?.settings?.autoSaveInterval]);
 
+  // ── Fleur du jour : offerte à la première ouverture de chaque journée ──
+  const giftedRef = useRef(false);
+  useEffect(() => {
+    if (!userData || giftedRef.current) return;
+    giftedRef.current = true;
+    if (userData.flowers?.lastGift === todayKey()) return;
+    const f = rollFlower(userData);
+    setUserData(prev => (prev ? addFlower(prev, f, 'jour') : prev));
+    setFlowerGifts(q => [...q, { f, reason: 'jour' }]);
+  }, [userData]);
+
   // ── Rappel quotidien : une seule notification par jour, à l'heure choisie ──
   useEffect(() => {
     const s = userData?.settings;
@@ -283,7 +307,7 @@ export default function App() {
       if (now.getHours() < hh || (now.getHours() === hh && now.getMinutes() < mm)) return;
       localStorage.setItem('mishkat_last_notif_date', today);
       const title = 'Mishkat';
-      const body = lang === 'fr' ? 'Ta séance de révision du jour t\'attend.' : 'جلسة المراجعة اليومية بانتظارك.';
+      const body = lang === 'fr' ? 'Ta fleur du jour t\'attend, et ta séance de révision aussi.' : 'زهرة اليوم بانتظارك، وجلسة المراجعة أيضاً.';
       navigator.serviceWorker?.ready
         .then(reg => reg.showNotification(title, { body, icon: '/icon-192.png', badge: '/favicon-96x96.png', tag: 'mishkat-reminder' }))
         .catch(() => new Notification(title, { body, icon: '/icon-192.png' }));
@@ -537,6 +561,16 @@ export default function App() {
             if (goTo) setActiveTab(goTo);
           }}/>
       )}
+
+      {/* Fleur du jour, après les autres annonces */}
+      <AnimatePresence>
+        {flowerGifts.length > 0 && !showWhatsNew && !showOnboarding && newlyUnlocked.length === 0 && (
+          <FlowerGiftOverlay key={flowerGifts[0].f.id + flowerGifts.length} f={flowerGifts[0].f} reason={flowerGifts[0].reason}
+            count={userData.flowers?.got[flowerGifts[0].f.id] ?? 1} lang={lang}
+            onClose={() => setFlowerGifts(q => q.slice(1))}
+            onSeeAll={() => { setFlowerGifts(q => q.slice(1)); setActiveTab('garden'); }}/>
+        )}
+      </AnimatePresence>
 
       {/* Onboarding modal */}
       {showOnboarding && (

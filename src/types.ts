@@ -118,6 +118,8 @@ export interface UserData {
   joursBlancs?: Record<string, { 13: boolean; 14: boolean; 15: boolean }>;
   // Étapes cochées dans « Ta séance du jour » (remise à zéro chaque jour)
   dailySession?: { date: string; done: string[]; total?: number };
+  // Collection de fleurs offertes (lib/flowers.ts)
+  flowers?: { got: Record<string, number>; firstAt: Record<string, string>; lastGift?: string; history?: { id: string; date: string; reason: 'jour' | 'sourate' }[] };
 }
 
 // ═══════════════════════════════════════════════════════════════
