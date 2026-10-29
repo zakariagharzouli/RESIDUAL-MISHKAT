@@ -326,3 +326,33 @@ button { cursor: pointer; border: none; background: none; }
 button { transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s; }
 button:not(:disabled):active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) { button:not(:disabled):active { transform: none; } }
+
+/* Choix des modèles du Diftar : entrée en cascade, carte qui se soulève */
+@keyframes mk-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.mk-tpl { animation: mk-rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i) * 30ms); transition: transform 0.2s, box-shadow 0.25s, border-color 0.2s; }
+.mk-tpl:hover { transform: translateY(-4px); border-color: var(--tint) !important; box-shadow: 0 16px 30px -18px var(--tint); }
+@media (prefers-reduced-motion: reduce) { .mk-tpl { animation: none; } .mk-tpl:hover { transform: none; } }
+
+/* Fond vivant : trois halos qui dérivent très lentement, et le motif qui glisse */
+.mk-glow { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; will-change: transform; }
+.mk-glow-a { left: -20vmax; top: -25vmax; animation: mk-float-a 38s ease-in-out infinite alternate; }
+.mk-glow-b { right: -25vmax; top: 20vh; animation: mk-float-b 46s ease-in-out infinite alternate; }
+.mk-glow-c { left: 20vw; bottom: -35vmax; animation: mk-float-c 54s ease-in-out infinite alternate; }
+@keyframes mk-float-a { to { transform: translate(18vw, 14vh) scale(1.15); } }
+@keyframes mk-float-b { to { transform: translate(-16vw, 10vh) scale(0.9); } }
+@keyframes mk-float-c { to { transform: translate(-10vw, -16vh) scale(1.1); } }
+@keyframes mk-pattern { to { transform: translate(96px, 96px); } }
+.mk-drift { inset: -96px !important; width: calc(100% + 192px) !important; height: calc(100% + 192px) !important; animation: mk-pattern 90s linear infinite; }
+
+/* Boutons plus vivants : légère lueur au survol, reflet qui passe sur les boutons principaux */
+button:not(:disabled):hover { filter: brightness(1.04) saturate(1.06); }
+.mk-shine { position: relative; overflow: hidden; isolation: isolate; }
+.mk-shine::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.42) 50%, transparent 65%);
+  transform: translateX(-120%); animation: mk-sheen 4.5s ease-in-out infinite; }
+.mk-shine:hover::after { animation-duration: 1.4s; }
+@keyframes mk-sheen { 0%, 60% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-glow, .mk-drift, .mk-shine::after { animation: none !important; }
+}

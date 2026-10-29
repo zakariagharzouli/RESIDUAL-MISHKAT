@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Surah, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { AnimatedNumber, PageHeader, useIsNarrow } from './ui';
+import { FlowerCollection } from './Flowers';
 
 // Chaque sourate travaillée devient une plante : bourgeon (en cours),
 // fleur (mémorisée), fleur qui a soif (à réviser).
@@ -172,6 +173,8 @@ export const GardenSection = ({ userData, lang, onNavigate }: Props) => {
           ? `Touche une fleur pour la voir. Les fleurs qui ont soif sont les sourates à réviser : les réviser, c'est les arroser.${narrow ? '' : ' La nuit, les lanternes s\'allument.'}`
           : 'المس زهرة لرؤيتها. الأزهار العطشى هي السور التي تحتاج إلى مراجعة.'}
       </p>
+
+      <FlowerCollection userData={userData} lang={lang}/>
     </div>
   );
 };

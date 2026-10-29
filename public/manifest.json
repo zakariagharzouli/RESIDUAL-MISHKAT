@@ -4,18 +4,12 @@
   "description": "Compagnon Spirituel - Mémorisation du Coran, Diftar et Objectifs.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fdfcf8",
-  "theme_color": "#8B2635",
+  "background_color": "#f8f3e9",
+  "theme_color": "#f8f3e9",
   "orientation": "portrait-primary",
   "categories": ["education", "productivity"],
   "lang": "fr",
   "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",

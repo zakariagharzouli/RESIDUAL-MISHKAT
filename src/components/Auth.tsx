@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useT } from '../lib/theme';
-import { LanternMark, Icon, Icons } from './ui';
+import { LanternMark, Icon, Icons, PoweredBy } from './ui';
 import { signIn, signUp } from '../lib/supabase';
 
 interface AuthProps {
@@ -168,7 +168,7 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
             </div>
           )}
 
-          <button type="submit" disabled={loading}
+          <button className="mk-shine" type="submit" disabled={loading}
             style={{ width: '100%', padding: '13px', borderRadius: 10, background: loading ? t.accentSoft : t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4 }}>
             {loading ? (fr ? 'Chargement…' : 'جاري…') : mode === 'login' ? (fr ? 'Se connecter' : 'تسجيل الدخول') : (fr ? 'Créer mon compte' : 'إنشاء الحساب')}
             {!loading && <Icon d={Icons.arrow} size={14}/>}
@@ -197,6 +197,7 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
             {fr ? 'Installer l\'appli sur l\'écran d\'accueil' : 'تثبيت التطبيق على الشاشة الرئيسية'}
           </button>
         </div>
+        <div style={{ marginTop: 22 }}><PoweredBy lang={lang}/></div>
       </div>
 
       {/* PWA install modal */}
