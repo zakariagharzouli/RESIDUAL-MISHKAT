@@ -28,8 +28,31 @@ const PRESETS: Record<'verset' | 'doua', Preset[]> = {
 
 // ── Cadres ───────────────────────────────────────────────────────────────────
 type FrameId = string;
-const FRAMES: { id: FrameId; fr: string; ar: string; dark: boolean }[] = [
-  { id: 'photo',      fr: 'Ma photo',       ar: 'صورتي',     dark: true  },
+// Photos (public/frames) : `focus` = hauteur du sujet dans l'image (0 haut, 1 bas)
+const PHOTOS: { id: string; fr: string; ar: string; focus: number }[] = [
+  { id: 'kaaba-crepuscule', fr: 'Kaaba au crépuscule', ar: 'الكعبة',       focus: 0.72 },
+  { id: 'haram-nuit',       fr: 'Al-Haram de nuit',    ar: 'الحرم ليلاً',  focus: 0.66 },
+  { id: 'medine',           fr: 'Médine',              ar: 'المدينة',      focus: 0.68 },
+  { id: 'alger-mosquee',    fr: 'Djamaa el Djazaïr',   ar: 'جامع الجزائر', focus: 0.68 },
+  { id: 'casbah',           fr: 'Casbah d\'Alger',     ar: 'القصبة',       focus: 0.68 },
+  { id: 'ghardaia',         fr: 'Ghardaïa',            ar: 'غرداية',       focus: 0.62 },
+  { id: 'tassili',          fr: 'Tassili, la nuit',    ar: 'الطاسيلي',     focus: 0.74 },
+  { id: 'timimoun',         fr: 'Timimoun',            ar: 'تيميمون',      focus: 0.62 },
+  { id: 'dunes',            fr: 'Dunes au couchant',   ar: 'كثبان',        focus: 0.76 },
+  { id: 'arcades',          fr: 'Arcades',             ar: 'أقواس',        focus: 0.6  },
+  { id: 'doua-mains',       fr: 'Mains en doua',       ar: 'الدعاء',       focus: 0.74 },
+  { id: 'dattes',           fr: 'Dattes et chapelet',  ar: 'تمر وسبحة',    focus: 0.74 },
+  { id: 'balcon-alger',     fr: 'Balcon sur la baie',  ar: 'شرفة',         focus: 0.62 },
+];
+const photoImgs = new Map<string, HTMLImageElement>();
+const loadPhoto = (id: string) => new Promise<void>(res => {
+  if (photoImgs.has(id)) return res();
+  const img = new Image(); img.onload = () => { photoImgs.set(id, img); res(); }; img.onerror = () => res(); img.src = `/frames/${id}.jpg`;
+});
+
+const FRAMES: { id: FrameId; fr: string; ar: string; dark: boolean; photo?: boolean }[] = [
+  { id: 'photo',      fr: 'Ma photo',       ar: 'صورتي',     dark: true, photo: true },
+  ...PHOTOS.map(p => ({ id: `img-${p.id}`, fr: p.fr, ar: p.ar, dark: true, photo: true })),
   { id: 'nuit',       fr: 'Nuit étoilée',   ar: 'ليلة',      dark: true  },
   { id: 'jardin',     fr: 'Jardin fleuri',  ar: 'حديقة',     dark: false },
   { id: 'aquarelle',  fr: 'Aquarelle',      ar: 'ألوان',     dark: false },
@@ -199,12 +222,19 @@ function paintFrame(ctx: CanvasRenderingContext2D, id: FrameId) {
       leaf(ctx, x, y, 60 + r() * 30, r() * 6, '#B7CDA8');
       flower(ctx, x, y, 24 + r() * 26, ['#E58AA0', '#F3B6C3', '#D9667F'][i % 3], '#F7D27A', r() * 3);
     }
+  } else if (id.startsWith('img-')) {
+    const ph = PHOTOS.find(p => `img-${p.id}` === id), img = photoImgs.get(id.slice(4));
+    if (img && ph) {
+      const s2 = Math.max(W / img.width, H / img.height), iw = img.width * s2, ih = img.height * s2;
+      // Le sujet reste visible quel que soit le format : il se place vers le bas du cadre
+      const oy = Math.max(H - ih, Math.min(0, H * 0.66 - ph.focus * ih));
+      ctx.drawImage(img, (W - iw) / 2, oy, iw, ih);
+    } else fillGrad(ctx, ['#2E2A3C', '#1A1724']);
   } else if (id === 'photo') {
     if (photoImg) {
       const s2 = Math.max(W / photoImg.width, H / photoImg.height), iw = photoImg.width * s2, ih = photoImg.height * s2;
       ctx.drawImage(photoImg, (W - iw) / 2, (H - ih) / 2, iw, ih);
     } else fillGrad(ctx, ['#3B3550', '#1E1B2B']);
-    fillGrad(ctx, ['rgba(10,8,20,0.25)', 'rgba(10,8,20,0.6)', 'rgba(10,8,20,0.35)']);
   } else if (id === 'lanternes') {
     fillGrad(ctx, ['#0E1533', '#24305E']);
     for (let i = 0; i < 90; i++) { ctx.fillStyle = `rgba(255,240,210,${0.2 + r() * 0.5})`; ctx.beginPath(); ctx.arc(r() * W, r() * H, 1 + r() * 2, 0, Math.PI * 2); ctx.fill(); }
@@ -324,6 +354,7 @@ function paintFrame(ctx: CanvasRenderingContext2D, id: FrameId) {
     flower(ctx, W / 2, H * 0.1 - 6, 22, '#E9A9B3', '#E2B25E');
   }
   // Double filet doré commun à tous les cadres
+  if (FRAMES.find(f => f.id === id)?.photo) return;
   const dark = (FRAMES.find(f => f.id === id) ?? FRAMES[1]).dark;
   ctx.strokeStyle = dark ? 'rgba(241,210,138,0.8)' : 'rgba(180,135,50,0.7)';
   ctx.lineWidth = 4; roundRect(ctx, 50, 50, W - 100, H - 100, 44); ctx.stroke();
@@ -347,7 +378,8 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string
   return out;
 }
 
-interface PostContent { kind: Kind; ar: string; fr: string; src: string; name: string; showName: boolean; frame: FrameId; format: FormatId; }
+type TextMode = 'auto' | 'clair' | 'fonce';
+interface PostContent { kind: Kind; ar: string; fr: string; src: string; name: string; showName: boolean; frame: FrameId; format: FormatId; textMode: TextMode; }
 
 /** Dessine le post complet (1080 × 1920) ; `scale` sert aux miniatures. */
 function renderPost(canvas: HTMLCanvasElement, c: PostContent, scale = 1) {
@@ -357,8 +389,7 @@ function renderPost(canvas: HTMLCanvasElement, c: PostContent, scale = 1) {
   const ctx = canvas.getContext('2d'); if (!ctx) return;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   paintFrame(ctx, c.frame);
-  const dark = (FRAMES.find(f => f.id === c.frame) ?? FRAMES[1]).dark;
-  const ink = dark ? '#FBF3E2' : '#2B2117', soft = dark ? 'rgba(251,243,226,0.78)' : 'rgba(43,33,23,0.72)', gold = dark ? '#F1D28A' : '#A97A22';
+  const fdef = FRAMES.find(f => f.id === c.frame) ?? FRAMES[1];
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
 
   const label = c.kind === 'verset' ? 'VERSET DU JOUR' : c.kind === 'doua' ? 'DOUA' : 'PENSÉE';
@@ -369,6 +400,32 @@ function renderPost(canvas: HTMLCanvasElement, c: PostContent, scale = 1) {
   const arLH = 122 * k, frLH = (c.ar ? 64 : 80) * k;
   const total = 70 + arLines.length * arLH + (arLines.length && frLines.length ? 40 : 0) + frLines.length * frLH + (c.src ? 90 : 0);
   let y = Math.max(220 * k + 60, (H - 300 * k - total) / 2 + 40);
+
+  // Couleur du texte selon le fond réel derrière le texte (photos) ou le cadre
+  const top = y - 70, bottom = y + total + 10;
+  let lum = fdef.dark ? 60 : 200;
+  if (fdef.photo) {
+    try {
+      const d = ctx.getImageData(Math.round(W * 0.08 * scale), Math.round(top * scale), Math.max(1, Math.round(W * 0.84 * scale)), Math.max(1, Math.round((bottom - top) * scale))).data;
+      let sum = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4 * 23) { sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; n++; }
+      if (n) lum = sum / n;
+    } catch { /* image non lisible : on garde le réglage du cadre */ }
+  }
+  const dark = c.textMode === 'clair' ? true : c.textMode === 'fonce' ? false : lum < 150;
+  const ink = dark ? '#FBF3E2' : '#2B2117', soft = dark ? 'rgba(251,243,226,0.85)' : 'rgba(43,33,23,0.78)', gold = dark ? '#F1D28A' : '#9A6C17';
+  // Voile doux derrière le texte : sur toutes les photos, et quand le texte est forcé à l'inverse du cadre
+  if (fdef.photo || (c.textMode !== 'auto' && dark !== fdef.dark)) {
+    const contrastGap = Math.abs(lum - (dark ? 40 : 230));
+    const alpha = Math.min(0.66, (fdef.photo ? 0.4 : 0.2) + contrastGap / 340);
+    ctx.save();
+    ctx.filter = `blur(${Math.round(36 * scale)}px)`;
+    ctx.fillStyle = dark ? `rgba(14,10,24,${alpha})` : `rgba(255,250,240,${alpha + 0.08})`;
+    roundRect(ctx, 70, top - 30, W - 140, bottom - top + 60, 80); ctx.fill();
+    ctx.restore();
+  }
+  // Ombre légère sous le texte sur les photos, pour les détails chargés
+  if (fdef.photo) { ctx.shadowColor = dark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)'; ctx.shadowBlur = 14 * scale; }
 
   ctx.font = '600 28px Inter, sans-serif'; ctx.fillStyle = gold;
   ctx.fillText(label.split('').join(String.fromCharCode(8202)), W / 2, y); y += 70;
@@ -384,6 +441,7 @@ function renderPost(canvas: HTMLCanvasElement, c: PostContent, scale = 1) {
   for (const l of frLines) { y += frLH; ctx.fillText(l, W / 2, y - 12); }
   if (c.src) { y += 90; ctx.font = '500 30px Inter, sans-serif'; ctx.fillStyle = gold; ctx.fillText(c.src, W / 2, y - 20); }
 
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
   // Signature : logo Mishkat et nom de l'utilisatrice
   const by = H - 200 * k, lg = 96 * k;
   ctx.font = `400 ${Math.round(40 * k)}px Fraunces, Georgia, serif`;
@@ -406,6 +464,7 @@ function renderPost(canvas: HTMLCanvasElement, c: PostContent, scale = 1) {
   const pre = 'propulsé par ', brand = 'RESIDUAL LABS';
   const pw = ctx.measureText(pre).width; ctx.font = '600 20px Inter, sans-serif'; const bw = ctx.measureText(brand).width + 4 * brand.length * 0.6;
   const lineW = pw + 28 + bw, lx = W / 2 - lineW / 2, ly = by + 96 * k;
+  if (fdef.photo) { ctx.fillStyle = dark ? 'rgba(11,18,48,0.6)' : 'rgba(255,255,255,0.82)'; roundRect(ctx, lx - 18, ly - 30, lineW + 36, 44, 22); ctx.fill(); ctx.fillStyle = soft; }
   ctx.font = '500 22px Inter, sans-serif'; ctx.fillText(pre, lx, ly);
   ctx.save(); ctx.translate(lx + pw, ly - 19); ctx.scale(22 / 64, 22 / 64); ctx.fillStyle = ink; ctx.strokeStyle = ink; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(32.2, 13.3); ctx.lineTo(14.8, 28.5); ctx.lineTo(16, 51.7); ctx.moveTo(32.2, 13.3); ctx.lineTo(48, 26.8); ctx.lineTo(33.5, 40.6); ctx.lineTo(48.2, 52.7); ctx.stroke();
@@ -425,15 +484,16 @@ export const StudioSection = ({ userData, lang }: Props) => {
   const [ar, setAr] = useState(PRESETS.doua[0].ar);
   const [txt, setTxt] = useState(PRESETS.doua[0].fr);
   const [src, setSrc] = useState(PRESETS.doua[0].src);
-  const [frame, setFrame] = useState<FrameId>('jardin');
+  const [frame, setFrame] = useState<FrameId>('img-kaaba-crepuscule');
   const [showName, setShowName] = useState(true);
   const [format, setFormat] = useState<FormatId>('story');
+  const [textMode, setTextMode] = useState<TextMode>('auto');
   const [photoTick, setPhotoTick] = useState(0);
   const [ready, setReady] = useState(false);
   const preview = useRef<HTMLCanvasElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const name = userData.settings?.username || 'Hafiz';
-  const content: PostContent = { kind, ar, fr: txt, src, name, showName, frame, format };
+  const content: PostContent = { kind, ar, fr: txt, src, name, showName, frame, format, textMode };
   const fmt = FORMATS.find(f => f.id === format) ?? FORMATS[0];
   void photoTick;
 
@@ -441,6 +501,7 @@ export const StudioSection = ({ userData, lang }: Props) => {
   useEffect(() => {
     Promise.all([loadLogo(), ...['64px "Amiri Quran"', 'italic 46px Fraunces', '40px Fraunces', '600 30px Inter'].map(f => document.fonts?.load(f).catch(() => null))])
       .finally(() => setReady(true));
+    PHOTOS.forEach(p => loadPhoto(p.id).then(() => setPhotoTick(n => n + 1)));
   }, []);
   useEffect(() => { if (preview.current) renderPost(preview.current, content); });
 
@@ -570,6 +631,18 @@ export const StudioSection = ({ userData, lang }: Props) => {
             e.target.value = '';
           }}/>
         <span style={{ fontSize: 12.5, color: t.inkMute }}>{fr ? '« Ma photo » : choisis une image de ta galerie, le texte se pose dessus.' : 'اختر صورة من معرضك.'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 14, color: t.ink }}>{fr ? 'Couleur du texte' : 'لون النص'}</span>
+          <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 12, background: t.bgSoft }}>
+            {([['auto', fr ? 'Auto' : 'تلقائي'], ['clair', fr ? 'Clair' : 'فاتح'], ['fonce', fr ? 'Foncé' : 'داكن']] as [TextMode, string][]).map(([m, l]) => (
+              <button key={m} onClick={() => setTextMode(m)} aria-pressed={textMode === m}
+                style={{ height: 36, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600,
+                  background: textMode === m ? t.card : 'transparent', color: textMode === m ? t.ink : t.inkMute, boxShadow: textMode === m ? '0 2px 8px -4px rgba(30,20,4,0.3)' : 'none' }}>
+                {m !== 'auto' && <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', marginInlineEnd: 6, background: m === 'clair' ? '#FBF3E2' : '#2B2117', boxShadow: '0 0 0 1px rgba(0,0,0,0.2)' }}/>}{l}
+              </button>
+            ))}
+          </div>
+        </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: t.ink, cursor: 'pointer' }}>
           <input type="checkbox" checked={showName} onChange={e => setShowName(e.target.checked)} style={{ width: 20, height: 20, accentColor: t.accent }}/>
           {fr ? `Afficher mon nom (@${name.replace(/\s+/g, '').toLowerCase()})` : 'إظهار اسمي'}
