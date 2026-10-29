@@ -1,300 +1,190 @@
-import React, { useState, useEffect } from 'react';
-import { Badge, UserData, BADGE_DEFINITIONS, getRarityColor, getRarityLabel } from '../types';
-import { getBadgeProgress, getBadgesByRarity, getTimeSinceUnlock, celebrateBadgeUnlock } from '../lib/badgeEngine';
+import React, { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { UserData, BADGE_DEFINITIONS } from '../types';
+import { getTimeSinceUnlock } from '../lib/badgeEngine';
+import { CATEGORIES, MATERIALS, Rarity, TrophyCategory, trophyCategory, trophyProgress } from '../lib/trophies';
 import { useT } from '../lib/theme';
-import { Icon, Icons, useIsNarrow } from './ui';
-
-const ICON_MAP: Record<string, React.ReactNode> = {
-  // lowercase
-  star: Icons.star, flame: Icons.flame, sparkle: Icons.sparkle, moon: Icons.moon,
-  book: Icons.book, beads: Icons.beads, pen: Icons.pen, palette: Icons.palette,
-  badge: Icons.badge, trophy: Icons.trophy, heart: Icons.heart, check: Icons.check,
-  // PascalCase (from BADGE_DEFINITIONS)
-  Star: Icons.star, Flame: Icons.flame, Sparkles: Icons.sparkle, Moon: Icons.moon,
-  BookOpen: Icons.book, BookText: Icons.book, Bookmark: Icons.bookmark,
-  Trophy: Icons.trophy, Award: Icons.badge, Medal: Icons.badge, Crown: Icons.sparkle,
-  Gem: Icons.sparkle, Heart: Icons.heart, Flag: Icons.target, Target: Icons.target,
-  ClipboardCheck: Icons.check, NotebookPen: Icons.pen, Palette: Icons.palette,
-  Paintbrush: Icons.palette, Zap: Icons.flame, Calendar: Icons.calendar,
-  CalendarDays: Icons.calendar,
-};
+import { AnimatedNumber, PageHeader, useIsNarrow } from './ui';
+import { TrophyMedal } from './Trophy';
 
 interface BadgesSectionProps {
   userData: UserData;
-  setUserData?: (updater: (prev: UserData) => UserData) => void;
   lang: 'fr' | 'ar';
-  newlyUnlocked?: Badge[];
 }
 
-export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionProps) => {
+type Row = (typeof BADGE_DEFINITIONS)[number] & { unlockedAt?: number; done: boolean; cur: number; goal: number; cat: TrophyCategory };
+
+const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+const fmt = (n: number) => n.toLocaleString('fr-FR');
+
+export const BadgesSection = ({ userData, lang }: BadgesSectionProps) => {
   const t = useT();
   const narrow = useIsNarrow();
-  const [selectedRarity, setSelectedRarity] = useState<string | null>(null);
-  const [showUnlockModal, setShowUnlockModal] = useState(false);
-  const [currentUnlockIndex, setCurrentUnlockIndex] = useState(0);
-  const [selectedBadge, setSelectedBadge] = useState<(typeof BADGE_DEFINITIONS[0] & { unlockedAt?: number }) | null>(null);
   const fr = lang === 'fr';
+  const [cat, setCat] = useState<TrophyCategory | 'all'>('all');
+  const [open, setOpen] = useState<Row | null>(null);
 
-  useEffect(() => {
-    if (newlyUnlocked && newlyUnlocked.length > 0) {
-      setShowUnlockModal(true);
-      setCurrentUnlockIndex(0);
-      newlyUnlocked.forEach((badge, index) => {
-        setTimeout(() => celebrateBadgeUnlock(badge), index * 800);
-      });
-    }
-  }, [newlyUnlocked]);
+  const rows: Row[] = useMemo(() => BADGE_DEFINITIONS.map(def => {
+    const owned = userData.badges.find(b => b.id === def.id);
+    const p = trophyProgress(userData, def.id) ?? [owned ? 1 : 0, 1];
+    return { ...def, unlockedAt: owned?.unlockedAt, done: !!owned, cur: p[0], goal: p[1], cat: trophyCategory(def.id) };
+  }), [userData]);
 
-  const unlockedIds = new Set(userData.badges.map(b => b.id));
-  const allBadges = BADGE_DEFINITIONS.map(def => ({
-    ...def,
-    unlockedAt: userData.badges.find(b => b.id === def.id)?.unlockedAt
-  }));
+  const total = rows.length;
+  const owned = rows.filter(r => r.done).length;
+  const pct = total ? owned / total : 0;
+  const almost = rows.filter(r => !r.done && r.cur > 0).sort((a, b) => b.cur / b.goal - a.cur / a.goal).slice(0, 3);
+  const shown = rows.filter(r => cat === 'all' || r.cat === cat)
+    .sort((a, b) => Number(b.done) - Number(a.done) || RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity));
 
-  const filteredBadges = selectedRarity ? allBadges.filter(b => b.rarity === selectedRarity) : allBadges;
-  const badgesByRarity = getBadgesByRarity(userData.badges);
-  const totalBadges = BADGE_DEFINITIONS.length;
-  const unlockedCount = userData.badges.length;
-  const progress = Math.round((unlockedCount / totalBadges) * 100);
-  const rarities = ['common', 'rare', 'epic', 'legendary'];
-
-  const handleNextUnlock = () => {
-    if (newlyUnlocked && currentUnlockIndex < newlyUnlocked.length - 1) {
-      setCurrentUnlockIndex(prev => prev + 1);
-    } else {
-      setShowUnlockModal(false);
-    }
-  };
-
-  const currentUnlock = newlyUnlocked?.[currentUnlockIndex];
-  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
-  const unlocked = allBadges.filter(b => unlockedIds.has(b.id));
-  const locked   = allBadges.filter(b => !unlockedIds.has(b.id));
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 20 };
+  const C = 2 * Math.PI * 44;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, direction: fr ? 'ltr' : 'rtl' }}>
+      <PageHeader
+        eyebrow={fr ? `${owned} sur ${total} obtenus` : `${owned} من ${total}`}
+        title={fr ? 'Trophées' : 'الأوسمة'}
+      />
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
-            {fr ? `${unlockedCount} sur ${totalBadges} débloqués` : `${unlockedCount} من ${totalBadges} مفتوح`}
+      {/* ── Résumé ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(0, 5fr) minmax(0, 7fr)', gap: 14 }}>
+        <div style={{ ...card, padding: 22, display: 'flex', alignItems: 'center', gap: 22 }}>
+          <div style={{ position: 'relative', width: 104, height: 104, flexShrink: 0 }}>
+            <svg width="104" height="104" viewBox="0 0 104 104" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
+              <circle cx="52" cy="52" r="44" fill="none" stroke={t.lineSoft} strokeWidth="8"/>
+              <motion.circle cx="52" cy="52" r="44" fill="none" stroke={t.accent} strokeWidth="8" strokeLinecap="round"
+                strokeDasharray={C} initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - pct) }}
+                transition={{ duration: 1.1, ease: [0.2, 0.8, 0.2, 1] }}/>
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 30, color: t.ink, lineHeight: 1 }}><AnimatedNumber value={owned}/></span>
+              <span style={{ fontSize: 11, color: t.inkMute, marginTop: 2 }}>/ {total}</span>
+            </div>
           </div>
-          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1 }}>
-            {fr ? 'Badges' : 'الشارات'}
-          </h1>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px 18px', flex: 1, minWidth: 0 }}>
+            {RARITIES.map(r => {
+              const n = rows.filter(x => x.rarity === r && x.done).length;
+              const of = rows.filter(x => x.rarity === r).length;
+              return (
+                <div key={r} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <TrophyMedal icon="Star" rarity={r} unlocked size={34}/>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>{fr ? MATERIALS[r].fr : MATERIALS[r].ar}</div>
+                    <div style={{ fontSize: 12, color: t.inkMute, fontVariantNumeric: 'tabular-nums' }}>{n} / {of}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <button
-          onClick={() => setSelectedRarity(selectedRarity ? null : 'rare')}
-          style={{ marginTop: 4, padding: '8px 14px', borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-          <Icon d={Icons.filter} size={12}/> {fr ? 'Toutes les raretés' : 'كل الندرات'}
-        </button>
+
+        <div style={{ ...card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 500 }}>
+            {fr ? 'Presque à toi' : 'قريب منك'}
+          </div>
+          {almost.length === 0 && (
+            <div style={{ fontSize: 14, color: t.inkDim }}>{fr ? 'Mémorise ta première sourate pour lancer ta collection.' : 'احفظ سورتك الأولى لتبدأ مجموعتك.'}</div>
+          )}
+          {almost.map(r => (
+            <button key={r.id} onClick={() => setOpen(r)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: fr ? 'left' : 'right', width: '100%', padding: 0, background: 'none', border: 'none', cursor: 'pointer', color: t.ink }}>
+              <TrophyMedal icon={r.icon} rarity={r.rarity} unlocked={false} size={40}/>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 14 }}>
+                  <span style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fr ? r.title : r.titleAr}</span>
+                  <span style={{ color: t.inkMute, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmt(r.cur)} / {fmt(r.goal)}</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 6, background: t.lineSoft, marginTop: 6, overflow: 'hidden' }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${(r.cur / r.goal) * 100}%` }} transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}
+                    style={{ height: '100%', borderRadius: 6, background: MATERIALS[r.rarity].mid }}/>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── 4 rarity tiles ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
-        {rarities.map(rarity => {
-          const rColor = getRarityColor(rarity);
-          const count = badgesByRarity[rarity]?.length || 0;
-          const label = fr
-            ? { common: 'Communs', rare: 'Rares', epic: 'Épiques', legendary: 'Légendaires' }[rarity]
-            : { common: 'عادي', rare: 'نادر', epic: 'ملحمي', legendary: 'أسطوري' }[rarity];
+      {/* ── Catégories ── */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }} className="no-scrollbar">
+        {[{ id: 'all' as const, fr: 'Tous', ar: 'الكل' }, ...CATEGORIES].map(c => {
+          const on = cat === c.id;
           return (
-            <div key={rarity} style={{ ...card, padding: '14px 16px', cursor: 'pointer' }} onClick={() => setSelectedRarity(selectedRarity === rarity ? null : rarity)}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: rColor, display: 'inline-block' }}/>
-                <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{label}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: t.ink, fontWeight: 300 }}>{count}</span>
-                <span style={{ fontSize: 11, color: t.inkDim }}>{fr ? 'débloqués' : 'مفتوح'}</span>
-              </div>
-            </div>
+            <button key={c.id} onClick={() => setCat(c.id)}
+              style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap',
+                background: on ? t.ink : t.card, color: on ? t.bg : t.inkDim, border: `1px solid ${on ? t.ink : t.line}`, transition: 'background .2s, color .2s' }}>
+              {fr ? c.fr : c.ar}
+            </button>
           );
         })}
       </div>
 
-      {/* ── Débloqués récemment ── */}
-      {unlocked.length > 0 && (
-        <>
-          <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-            {fr ? 'Débloqués récemment' : 'المفتوحة مؤخراً'}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-            {(selectedRarity ? unlocked.filter(b => b.rarity === selectedRarity) : unlocked).map((badge, i) => {
-              const rColor = getRarityColor(badge.rarity);
-              return (
-                <div key={badge.id} onClick={() => setSelectedBadge(badge)}
-                  className="anim-stagger"
-                  style={{ '--idx': i, padding: '18px 14px', background: t.card, border: `1px solid ${rColor}33`, borderRadius: 12, textAlign: 'center', position: 'relative', overflow: 'hidden', cursor: 'pointer' } as React.CSSProperties}>
-                  <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${rColor}22, transparent 70%)` }}/>
-                  <div style={{ width: 44, height: 44, margin: '0 auto', borderRadius: '50%', background: t.cardElev, border: `1px solid ${rColor}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
-                    <Icon d={ICON_MAP[badge.icon] ?? Icons.star} size={20} color={rColor} stroke={1.5}/>
+      {/* ── Collection ── */}
+      <motion.div layout style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${narrow ? 104 : 132}px, 1fr))`, gap: 10 }}>
+        <AnimatePresence initial={false}>
+          {shown.map((r, i) => (
+            <motion.button key={r.id} layout onClick={() => setOpen(r)}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.25, delay: Math.min(i, 18) * 0.02 }}
+              whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }}
+              style={{ ...card, borderRadius: 18, padding: '16px 10px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer', color: t.ink,
+                borderColor: r.done ? `${MATERIALS[r.rarity].mid}55` : t.line }}>
+              <div style={{ opacity: r.done ? 1 : 0.75 }}><TrophyMedal icon={r.icon} rarity={r.rarity} unlocked={r.done} size={narrow ? 60 : 72}/></div>
+              <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25, textAlign: 'center', color: r.done ? t.ink : t.inkDim }}>{fr ? r.title : r.titleAr}</div>
+              {r.done ? (
+                <div style={{ fontSize: 11.5, color: MATERIALS[r.rarity].mid, fontWeight: 600 }}>{fr ? MATERIALS[r.rarity].fr : MATERIALS[r.rarity].ar}</div>
+              ) : (
+                <div style={{ width: '82%' }}>
+                  <div style={{ height: 4, borderRadius: 4, background: t.lineSoft, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(r.cur / r.goal) * 100}%`, background: MATERIALS[r.rarity].mid, borderRadius: 4 }}/>
                   </div>
-                  <div style={{ fontSize: 11.5, color: t.ink, fontWeight: 500, marginTop: 10, position: 'relative', zIndex: 1 }}>
-                    {fr ? badge.title : badge.titleAr}
-                  </div>
-                  <div style={{ fontSize: 9, color: rColor, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, position: 'relative', zIndex: 1 }}>
-                    {getRarityLabel(badge.rarity, lang)}
-                  </div>
+                  <div style={{ fontSize: 11, color: t.inkMute, marginTop: 4, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{fmt(r.cur)} / {fmt(r.goal)}</div>
                 </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+              )}
+            </motion.button>
+          ))}
+        </AnimatePresence>
+      </motion.div>
 
-      {/* ── À débloquer ── */}
-      {locked.length > 0 && (
-        <>
-          <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-            {fr ? 'À débloquer' : 'للفتح'}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-            {(selectedRarity ? locked.filter(b => b.rarity === selectedRarity) : locked).map((badge, i) => {
-              const rColor = getRarityColor(badge.rarity);
-              const progressVal = getBadgeProgress(userData, badge.id);
-              return (
-                <div key={badge.id} onClick={() => setSelectedBadge(badge)}
-                  className="anim-stagger"
-                  style={{ '--idx': i, padding: '18px 14px', background: t.card, border: `1px dashed ${t.line}`, borderRadius: 12, textAlign: 'center', opacity: 0.55, cursor: 'pointer' } as React.CSSProperties}>
-                  <div style={{ width: 44, height: 44, margin: '0 auto', borderRadius: '50%', background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon d={Icons.lock} size={16} color={t.inkMute}/>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: t.inkDim, fontWeight: 500, marginTop: 10 }}>
-                    {fr ? badge.title : badge.titleAr}
-                  </div>
-                  <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
-                    {getRarityLabel(badge.rarity, lang)}
-                  </div>
-                  {progressVal > 0 && (
-                    <div style={{ marginTop: 8 }}>
-                      <div style={{ height: 2, borderRadius: 2, background: t.cardElev }}>
-                        <div style={{ height: '100%', width: `${progressVal}%`, background: rColor, borderRadius: 2 }}/>
-                      </div>
-                      <div style={{ fontSize: 8, color: t.inkMute, marginTop: 3 }}>{Math.round(progressVal)}%</div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Badge detail modal */}
-      {selectedBadge && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 0 0 0', background: 'rgba(0,0,0,0.6)' }}
-          onClick={() => setSelectedBadge(null)}>
-          <div style={{
-            ...card, width: '100%', maxWidth: 420, borderRadius: '20px 20px 0 0', padding: '28px 24px',
-            borderColor: getRarityColor(selectedBadge.rarity), borderWidth: 2, position: 'relative',
-          }}
-            onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedBadge(null)}
-              style={{ position: 'absolute', top: 16, right: 16, width: 28, height: 28, borderRadius: '50%', background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkMute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
-              ✕
-            </button>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14 }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: `${getRarityColor(selectedBadge.rarity)}22`,
-              }}>
-                <Icon d={ICON_MAP[selectedBadge.icon] ?? Icons.star} size={28} color={getRarityColor(selectedBadge.rarity)} stroke={1.5}/>
+      {/* ── Détail ── */}
+      <AnimatePresence>
+        {open && (
+          <motion.div key="sheet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(16,11,4,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: narrow ? 'flex-end' : 'center', justifyContent: 'center', padding: narrow ? 0 : 20 }}>
+            <motion.div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={fr ? open.title : open.titleAr}
+              initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+              style={{ ...card, width: '100%', maxWidth: 420, borderRadius: narrow ? '24px 24px 0 0' : 24, padding: `28px 24px ${narrow ? 'calc(28px + env(safe-area-inset-bottom, 0px))' : '28px'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10, direction: fr ? 'ltr' : 'rtl' }}>
+              <motion.div initial={{ rotateY: 90, scale: 0.8 }} animate={{ rotateY: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 140, damping: 14 }}>
+                <TrophyMedal icon={open.icon} rarity={open.rarity} unlocked={open.done} size={140}/>
+              </motion.div>
+              <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 600, color: MATERIALS[open.rarity].mid }}>
+                {fr ? MATERIALS[open.rarity].fr : MATERIALS[open.rarity].ar} · {fr ? CATEGORIES.find(c => c.id === open.cat)?.fr : CATEGORIES.find(c => c.id === open.cat)?.ar}
               </div>
-
-              <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', background: `${getRarityColor(selectedBadge.rarity)}20`, color: getRarityColor(selectedBadge.rarity) }}>
-                {getRarityLabel(selectedBadge.rarity, lang)}
-              </span>
-
-              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 20, color: t.ink }}>
-                {fr ? selectedBadge.title : selectedBadge.titleAr}
-              </div>
-              <div style={{ fontSize: 13, color: t.inkDim, lineHeight: 1.6 }}>
-                {fr ? selectedBadge.description : selectedBadge.descriptionAr}
-              </div>
-
-              {unlockedIds.has(selectedBadge.id) ? (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: getRarityColor(selectedBadge.rarity) }}>
-                    {fr ? 'Débloqué' : 'مفتوح'}
-                  </div>
-                  {selectedBadge.unlockedAt && (
-                    <div style={{ fontSize: 10, color: t.inkMute, marginTop: 3 }}>
-                      {getTimeSinceUnlock(selectedBadge.unlockedAt, lang)}
-                    </div>
-                  )}
+              <h2 style={{ margin: 0, fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: 26, color: t.ink }}>{fr ? open.title : open.titleAr}</h2>
+              <p style={{ margin: 0, fontSize: 15, color: t.inkDim, lineHeight: 1.55 }}>{fr ? open.description : open.descriptionAr}</p>
+              {open.done ? (
+                <div style={{ marginTop: 6, fontSize: 13, color: t.inkMute }}>
+                  {fr ? 'Obtenu' : 'حصلت عليه'}{open.unlockedAt ? ` · ${getTimeSinceUnlock(open.unlockedAt, lang).toLowerCase()}` : ''}
                 </div>
               ) : (
-                <div style={{ width: '100%' }}>
-                  <div style={{ fontSize: 10, color: t.inkMute, marginBottom: 8 }}>{fr ? 'Non débloqué' : 'غير مفتوح'}</div>
-                  {getBadgeProgress(userData, selectedBadge.id) > 0 && (
-                    <>
-                      <div style={{ height: 5, borderRadius: 3, background: t.cardElev, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${getBadgeProgress(userData, selectedBadge.id)}%`, background: getRarityColor(selectedBadge.rarity), borderRadius: 3 }}/>
-                      </div>
-                      <div style={{ fontSize: 10, color: t.inkMute, marginTop: 5 }}>
-                        {Math.round(getBadgeProgress(userData, selectedBadge.id))}% {fr ? 'accompli' : 'مكتمل'}
-                      </div>
-                    </>
-                  )}
+                <div style={{ width: '100%', marginTop: 8 }}>
+                  <div style={{ height: 8, borderRadius: 8, background: t.lineSoft, overflow: 'hidden' }}>
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${(open.cur / open.goal) * 100}%` }} transition={{ duration: 0.8 }}
+                      style={{ height: '100%', borderRadius: 8, background: MATERIALS[open.rarity].mid }}/>
+                  </div>
+                  <div style={{ fontSize: 13, color: t.inkMute, marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>
+                    {fmt(open.cur)} / {fmt(open.goal)} · {fr ? `encore ${fmt(open.goal - open.cur)}` : `باقي ${fmt(open.goal - open.cur)}`}
+                  </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Unlock modal */}
-      {showUnlockModal && currentUnlock && (() => {
-        const rColor = getRarityColor(currentUnlock.rarity);
-        return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.7)' }}
-            onClick={() => setShowUnlockModal(false)}>
-            <div style={{
-              background: t.bgSoft, border: `3px solid ${rColor}`, borderRadius: 32, padding: '36px 28px',
-              maxWidth: 360, width: '100%', textAlign: 'center',
-              boxShadow: `0 0 60px ${rColor}44`,
-            }}
-              onClick={e => e.stopPropagation()}>
-
-              {newlyUnlocked && newlyUnlocked.length > 1 && (
-                <div style={{ position: 'absolute', top: 14, right: 14, padding: '3px 10px', borderRadius: 20, background: rColor, color: '#fff', fontSize: 10, fontWeight: 700 }}>
-                  {currentUnlockIndex + 1}/{newlyUnlocked.length}
-                </div>
-              )}
-
-              <div style={{ width: 80, height: 80, borderRadius: 22, background: rColor, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: `0 16px 40px ${rColor}60` }}>
-                <Icon d={ICON_MAP[currentUnlock.icon] ?? Icons.star} size={36} color="#fff" stroke={1.5}/>
-              </div>
-
-              <div style={{ fontSize: 9, color: rColor, letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 10 }}>
-                {fr ? '✦ Badge débloqué ✦' : '✦ شارة جديدة ✦'}
-              </div>
-
-              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink, marginBottom: 10 }}>
-                {fr ? currentUnlock.title : currentUnlock.titleAr}
-              </div>
-
-              <div style={{ fontSize: 13, color: t.inkDim, lineHeight: 1.6, marginBottom: 14 }}>
-                {fr ? currentUnlock.description : currentUnlock.descriptionAr}
-              </div>
-
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, background: `${rColor}20`, border: `1px solid ${rColor}44`, color: rColor, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 20 }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: rColor, display: 'inline-block' }}/>
-                {getRarityLabel(currentUnlock.rarity, lang)}
-              </div>
-
-              <button onClick={handleNextUnlock}
-                style={{ display: 'block', width: '100%', padding: '14px', borderRadius: 16, background: rColor, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: `0 10px 28px ${rColor}55` }}>
-                {newlyUnlocked && currentUnlockIndex < newlyUnlocked.length - 1
-                  ? (fr ? 'Suivant →' : 'التالي →')
-                  : (fr ? 'Excellent !' : 'ممتاز!')}
+              <button onClick={() => setOpen(null)}
+                style={{ marginTop: 12, width: '100%', padding: '13px', borderRadius: 14, border: `1px solid ${t.line}`, background: t.bgSoft, color: t.ink, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                {fr ? 'Fermer' : 'إغلاق'}
               </button>
-            </div>
-          </div>
-        );
-      })()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

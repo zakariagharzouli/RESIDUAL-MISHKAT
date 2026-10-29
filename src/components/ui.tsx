@@ -52,6 +52,8 @@ export const Icons = {
   globe:     <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></>,
   download:  <><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></>,
   upload:    <><path d="M12 21V9M6 13l6-6 6 6M4 3h16"/></>,
+  flower:    <><path d="M7 4l2.5 2L12 3l2.5 3L17 4v4a5 5 0 0 1-10 0z"/><path d="M12 13v9M12 18c-2.5 0-4.5-1.5-5-4 2.5 0 4.5 1.5 5 4zM12 20c2.5 0 4.5-1.5 5-4-2.5 0-4.5 1.5-5 4z"/></>,
+  share:     <><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.9l7.6-4.6M8.2 13.1l7.6 4.6"/></>,
   eye:       <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></>,
   shield:    <><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></>,
   refresh:   <><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></>,
@@ -215,27 +217,44 @@ interface SidebarProps {
 }
 
 const MENU_ITEMS = [
-  { id: 'dashboard',    labelFr: 'Tableau de bord', labelAr: 'لوحة التحكم',    icon: 'dashboard' },
-  { id: 'memorization', labelFr: 'Mémorisation',    labelAr: 'الحفظ',          icon: 'book'      },
-  { id: 'calendar',     labelFr: 'Calendrier',       labelAr: 'التقويم',        icon: 'calendar'  },
-  { id: 'goals',        labelFr: 'Objectifs',        labelAr: 'الأهداف',        icon: 'target'    },
-  { id: 'badges',       labelFr: 'Badges',           labelAr: 'الأوسمة',        icon: 'badge'     },
-  { id: 'tasbih',       labelFr: 'Tasbih',           labelAr: 'تسبيح',          icon: 'beads'     },
-  { id: 'coloring',     labelFr: 'Coloriage',        labelAr: 'تلوين',          icon: 'palette'   },
-  { id: 'diftar',       labelFr: 'Diftar',           labelAr: 'دفتر',          icon: 'pen'       },
-  { id: 'kanban',       labelFr: 'Suivi',            labelAr: 'متابعة',         icon: 'chart'     },
-  { id: 'quran',        labelFr: 'Coran',             labelAr: 'القرآن',         icon: 'bookmark'  },
-  { id: 'adhkar',       labelFr: 'Adhkar',            labelAr: 'الأذكار',        icon: 'moon'      },
-  { id: 'quiz',         labelFr: 'Quiz',              labelAr: 'مسابقة',         icon: 'sparkle'   },
-  { id: 'joursblancs',  labelFr: 'Jours Blancs',     labelAr: 'الأيام البيض',    icon: 'moonStar'  },
-  { id: 'settings',     labelFr: 'Réglages',         labelAr: 'الإعدادات',      icon: 'settings'  },
+  { id: 'dashboard',    labelFr: 'Tableau de bord', labelAr: 'لوحة التحكم',    icon: 'dashboard', group: '' },
+  { id: 'memorization', labelFr: 'Mémorisation',    labelAr: 'الحفظ',          icon: 'book',      group: 'learn' },
+  { id: 'quran',        labelFr: 'Coran',            labelAr: 'القرآن',         icon: 'bookmark',  group: 'learn' },
+  { id: 'diftar',       labelFr: 'Diftar',           labelAr: 'دفتر',           icon: 'pen',       group: 'learn' },
+  { id: 'quiz',         labelFr: 'Quiz',             labelAr: 'مسابقة',         icon: 'sparkle',   group: 'learn' },
+  { id: 'kanban',       labelFr: 'Suivi',            labelAr: 'متابعة',         icon: 'chart',     group: 'learn' },
+  { id: 'tasbih',       labelFr: 'Tasbih',           labelAr: 'تسبيح',          icon: 'beads',     group: 'practice' },
+  { id: 'adhkar',       labelFr: 'Adhkar',           labelAr: 'الأذكار',        icon: 'moon',      group: 'practice' },
+  { id: 'joursblancs',  labelFr: 'Jours Blancs',     labelAr: 'الأيام البيض',   icon: 'moonStar',  group: 'practice' },
+  { id: 'studio',       labelFr: 'Créer un post',    labelAr: 'إنشاء منشور',    icon: 'share',     group: 'practice' },
+  { id: 'calendar',     labelFr: 'Calendrier',       labelAr: 'التقويم',        icon: 'calendar',  group: 'progress' },
+  { id: 'goals',        labelFr: 'Objectifs',        labelAr: 'الأهداف',        icon: 'target',    group: 'progress' },
+  { id: 'badges',       labelFr: 'Trophées',         labelAr: 'الأوسمة',        icon: 'badge',     group: 'progress' },
+  { id: 'garden',       labelFr: 'Mon jardin',       labelAr: 'حديقتي',         icon: 'flower',    group: 'progress' },
+  { id: 'coloring',     labelFr: 'Coloriage',        labelAr: 'تلوين',          icon: 'palette',   group: 'progress' },
+  { id: 'settings',     labelFr: 'Réglages',         labelAr: 'الإعدادات',      icon: 'settings',  group: 'system' },
+];
+
+const MENU_GROUPS: Record<string, { fr: string; ar: string }> = {
+  learn:    { fr: 'Apprendre',  ar: 'التعلّم' },
+  practice: { fr: 'Pratiquer',  ar: 'العبادة' },
+  progress: { fr: 'Progresser', ar: 'التقدّم' },
+  system:   { fr: '',           ar: '' },
+};
+
+// Onglets toujours visibles sur mobile ; le reste passe dans « Plus »
+const MOBILE_PRIMARY = [
+  { id: 'dashboard',    labelFr: 'Accueil',   labelAr: 'الرئيسية', icon: 'dashboard' },
+  { id: 'memorization', labelFr: 'Mémoriser', labelAr: 'الحفظ',    icon: 'book'      },
+  { id: 'quran',        labelFr: 'Coran',     labelAr: 'القرآن',   icon: 'bookmark'  },
+  { id: 'diftar',       labelFr: 'Diftar',    labelAr: 'دفتر',     icon: 'pen'       },
 ];
 
 export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, lang = 'fr', open: openProp, onClose }: SidebarProps) => {
   const t = useT();
   const items = [
     ...MENU_ITEMS,
-    ...(isAdmin ? [{ id: 'admin', labelFr: 'Admin', labelAr: 'الإدارة', icon: 'shield' }] : []),
+    ...(isAdmin ? [{ id: 'admin', labelFr: 'Admin', labelAr: 'الإدارة', icon: 'shield', group: 'system' }] : []),
   ];
 
   const isMobile = useIsMobile();
@@ -243,35 +262,76 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
   const controlled = openProp !== undefined;
   const open = controlled ? openProp! : openLocal;
   const handleClose = () => { if (controlled) onClose?.(); else setOpenLocal(false); };
+  const [moreOpen, setMoreOpen] = useState(false);
 
   if (isMobile) {
+    const ar = lang === 'ar';
+    const moreItems = items.filter(i => !MOBILE_PRIMARY.some(p => p.id === i.id));
+    const moreActive = moreItems.some(i => i.id === active);
+    const go = (id: string) => { setMoreOpen(false); onNavigate(id); };
+    const tab = (id: string, icon: string, label: string, on: boolean, onClick: () => void) => (
+      <button key={id} onClick={onClick} aria-current={on ? 'page' : undefined}
+        style={{
+          flex: 1, minWidth: 0, minHeight: 52, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+          borderRadius: 12, color: on ? t.accent : t.inkMute, position: 'relative',
+        }}>
+        <span style={{
+          width: 44, height: 28, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: on ? `${t.accent}1f` : 'transparent', transition: 'background 0.2s ease',
+        }}>
+          <Icon d={(Icons as Record<string, React.ReactNode>)[icon]} size={20} stroke={on ? 1.9 : 1.6}/>
+        </span>
+        <span style={{ fontSize: 11, fontFamily: 'Inter', fontWeight: on ? 600 : 500, color: on ? t.ink : t.inkMute, whiteSpace: 'nowrap' }}>{label}</span>
+      </button>
+    );
     return (
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-        background: t.bgSoft,
-        borderTop: `1px solid ${t.line}`,
-        display: 'flex', overflowX: 'auto',
-        padding: '8px 4px 12px',
-      }} className="no-scrollbar">
-        {items.map(item => {
-          const on = item.id === active;
-          return (
-            <button key={item.id} onClick={() => onNavigate(item.id)}
+      <>
+        {moreOpen && (
+          <div onClick={() => setMoreOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(20,14,6,0.32)', backdropFilter: 'blur(2px)', animation: 'mk-fade 0.18s ease-out' }}>
+            <div onClick={e => e.stopPropagation()} role="dialog" aria-label={ar ? 'المزيد' : 'Plus de rubriques'}
               style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                padding: '6px 10px', borderRadius: 8, flexShrink: 0,
-                background: on ? `${t.accent}14` : 'transparent',
-                color: on ? t.accent : t.inkMute,
-                minWidth: 56,
+                position: 'absolute', left: 0, right: 0, bottom: 0,
+                background: t.card, borderTop: `1px solid ${t.line}`, borderRadius: '22px 22px 0 0',
+                padding: '10px 16px calc(92px + env(safe-area-inset-bottom, 0px))',
+                boxShadow: '0 -12px 40px rgba(40,28,8,0.14)', animation: 'mk-sheet 0.24s cubic-bezier(0.2,0.8,0.2,1)',
+                direction: ar ? 'rtl' : 'ltr',
               }}>
-              <Icon d={(Icons as Record<string, React.ReactNode>)[item.icon]} size={17} style={{ color: on ? t.accent : t.inkMute }}/>
-              <span style={{ fontSize: 9, fontFamily: 'Inter', fontWeight: on ? 500 : 400, color: on ? t.ink : t.inkMute }}>
-                {lang === 'ar' ? (item as any).labelAr : item.labelFr.slice(0, 8)}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+              <div style={{ width: 36, height: 4, borderRadius: 4, background: t.line, margin: '0 auto 14px' }}/>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+                {moreItems.map(item => {
+                  const on = item.id === active;
+                  return (
+                    <button key={item.id} onClick={() => go(item.id)}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 2px', borderRadius: 14,
+                        background: on ? `${t.accent}14` : 'transparent', color: on ? t.accent : t.inkDim,
+                      }}>
+                      <span style={{ width: 44, height: 44, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? `${t.accent}1f` : t.bgSoft, border: `1px solid ${on ? `${t.accent}40` : t.lineSoft}` }}>
+                        <Icon d={(Icons as Record<string, React.ReactNode>)[item.icon]} size={20}/>
+                      </span>
+                      <span style={{ fontSize: 11.5, fontFamily: 'Inter', fontWeight: 500, color: on ? t.ink : t.inkDim, textAlign: 'center', lineHeight: 1.2 }}>
+                        {ar ? (item as any).labelAr : item.labelFr}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+        <nav aria-label={ar ? 'التنقل' : 'Navigation'} style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+          background: t.bgSoft,
+          borderTop: `1px solid ${t.line}`,
+          display: 'flex', gap: 2,
+          padding: '6px 6px calc(8px + env(safe-area-inset-bottom, 0px))',
+          direction: ar ? 'rtl' : 'ltr',
+        }}>
+          {MOBILE_PRIMARY.map(p => tab(p.id, p.icon, ar ? p.labelAr : p.labelFr, !moreOpen && p.id === active, () => go(p.id)))}
+          {tab('more', 'more', ar ? 'المزيد' : 'Plus', moreOpen || moreActive, () => setMoreOpen(v => !v))}
+        </nav>
+      </>
     );
   }
 
@@ -319,10 +379,18 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
 
       {/* Menu */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, overflowY: 'auto' }} className="no-scrollbar">
-        {items.map(item => {
+        {items.map((item, idx) => {
           const on = item.id === active;
+          const newGroup = idx > 0 && item.group !== items[idx - 1].group;
+          const groupLabel = newGroup ? (lang === 'ar' ? MENU_GROUPS[item.group]?.ar : MENU_GROUPS[item.group]?.fr) : '';
           return (
-            <button key={item.id} onClick={() => onNavigate(item.id)}
+            <React.Fragment key={item.id}>
+            {newGroup && (
+              groupLabel
+                ? <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkMute, padding: '14px 11px 6px' }}>{groupLabel}</div>
+                : <div style={{ height: 1, background: t.lineSoft, margin: '12px 8px' }}/>
+            )}
+            <button onClick={() => onNavigate(item.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 11,
                 padding: '8px 11px', borderRadius: 7,
@@ -337,6 +405,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
               </span>
               {lang === 'ar' ? (item as any).labelAr : item.labelFr}
             </button>
+            </React.Fragment>
           );
         })}
       </div>
@@ -429,4 +498,41 @@ export const useIsNarrow = () => {
     return () => window.removeEventListener('resize', check);
   }, []);
   return narrow;
+};
+
+// ── PageHeader : le même en-tête partout (sur-titre, titre, actions) ─────────
+export const PageHeader = ({ eyebrow, title, right }: { eyebrow?: React.ReactNode; title: React.ReactNode; right?: React.ReactNode }) => {
+  const t = useT();
+  const isMobile = useIsMobile();
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ minWidth: 0 }}>
+        {eyebrow && (
+          <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 500, marginBottom: 8 }}>{eyebrow}</div>
+        )}
+        <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 360, fontSize: isMobile ? 30 : 36, margin: 0, color: t.ink, letterSpacing: '-0.015em', lineHeight: 1.05 }}>{title}</h1>
+      </div>
+      {right && <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>{right}</div>}
+    </div>
+  );
+};
+
+// ── AnimatedNumber : compte jusqu'à la valeur au montage et à chaque changement ──
+export const AnimatedNumber = ({ value, duration = 900 }: { value: number; duration?: number }) => {
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { setShown(value); return; }
+    let raf = 0;
+    const from = 0, start = performance.now();
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - k, 3);
+      setShown(Math.round(from + (value - from) * eased));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{shown}</span>;
 };

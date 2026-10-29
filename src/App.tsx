@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Toaster } from 'react-hot-toast';
+import { motion } from 'framer-motion';
+import toast, { Toaster } from 'react-hot-toast';
+import { cheerFor } from './lib/encouragements';
+import { WhatsNew, WHATS_NEW_KEY } from './components/WhatsNew';
 import { ThemeContext, THEMES, DARK_THEMES, Theme } from './lib/theme';
 import { OfflineBanner } from './components/OfflineBanner';
 import { AppSidebar, LanternMark, useIsMobile } from './components/ui';
@@ -18,10 +20,13 @@ import { QuranSection } from './components/Quran';
 import { AdhkarSection } from './components/Adhkar';
 import { QuizSection } from './components/Quiz';
 import { JoursBlancsSection } from './components/JoursBlancs';
+import { StudioSection } from './components/Studio';
+import { GardenSection } from './components/Garden';
 import { AdminSection } from './components/Admin';
 import localforage from 'localforage';
 import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
-import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
+import { checkAndUnlockBadges } from './lib/badgeEngine';
+import { TrophyUnlockOverlay } from './components/Trophy';
 import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
 import { AuthScreen, REMEMBER_KEY, SESSION_ALIVE_KEY } from './components/Auth';
 import { WelcomeSplash } from './components/WelcomeSplash';
@@ -35,6 +40,8 @@ const mapTheme = (old?: string): string => {
   if (old === 'emerald') return 'emerald';
   return 'gold';
 };
+
+const whatsNewSeen = () => { try { return !!localStorage.getItem(WHATS_NEW_KEY); } catch { return true; } };
 
 export default function App() {
   const [activeTab, setActiveTab]   = useState('dashboard');
@@ -51,6 +58,8 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTrialPopup, setShowTrialPopup] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [diftarEditing, setDiftarEditing] = useState(false);
 
   const isDark = userData?.settings?.darkMode ?? false;
   const themeMap = isDark ? DARK_THEMES : THEMES;
@@ -68,18 +77,27 @@ export default function App() {
     }
   }, [supabaseUserId]);
 
+  // Mots de soutien après les actions importantes (un toast à la fois, jamais en rafale)
+  const langRef = useRef(lang);
+  useEffect(() => { langRef.current = lang; }, [lang]);
+  const lastCheerRef = useRef(0);
+  const cheer = (prev: UserData, next: UserData) => {
+    const msg = cheerFor(prev, next, langRef.current);
+    if (!msg || Date.now() - lastCheerRef.current < 6000) return;
+    lastCheerRef.current = Date.now();
+    setTimeout(() => toast(msg, { id: msg, duration: 4200, icon: <LanternMark size={20}/> }), 0);
+  };
+
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
       if (!prev) return prev;
       const next = typeof updater === 'function' ? updater(prev) : updater;
+      cheer(prev, next);
       const { newBadges } = checkAndUnlockBadges(next);
       if (newBadges.length > 0) {
         const updated = { ...next, badges: [...next.badges, ...newBadges] };
-        setNewlyUnlocked(newBadges);
+        setNewlyUnlocked(prevNew => [...prevNew, ...newBadges.filter(b => !prevNew.some(p => p.id === b.id))]);
         playBadgeUnlock();
-        newBadges.forEach((badge, i) => {
-          setTimeout(() => celebrateBadgeUnlock(badge), i * 800);
-        });
         return updated;
       }
       return next;
@@ -125,6 +143,7 @@ export default function App() {
               if (typeof cloudData.loginStreak !== 'number') cloudData.loginStreak = 1;
               cloudData.settings = { ...cloudData.settings, isAdmin: isAdminEmail(session.user.email) };
               setUserData(cloudData);
+              if (!whatsNewSeen()) setShowWhatsNew(true);
               if (cloudData.settings?.showSplashOnLogin !== false) setShowSplash(true);
               return;
             }
@@ -196,7 +215,10 @@ export default function App() {
           if (session?.user) {
             parsed.settings = { ...parsed.settings, isAdmin: isAdminEmail(session.user.email) };
           }
+          const { newBadges } = checkAndUnlockBadges(parsed);
+          if (newBadges.length > 0) parsed.badges = [...parsed.badges, ...newBadges];
           setUserData(parsed);
+          if (!whatsNewSeen()) setShowWhatsNew(true);
         } else {
           const initial: UserData = {
             surahs: generateAllSurahs(), diftarPages: [],
@@ -208,8 +230,10 @@ export default function App() {
             loginStreak: 1, lastLoginDate: today, tasbihSessionBest: 0,
             settings: { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
           };
+          initial.badges = checkAndUnlockBadges(initial).newBadges;
           setUserData(initial);
           setShowOnboarding(true);
+          try { localStorage.setItem(WHATS_NEW_KEY, '1'); } catch { /* stockage indisponible */ }
         }
       } catch {
         const today = new Date().toISOString().split('T')[0];
@@ -245,41 +269,29 @@ export default function App() {
     return () => clearInterval(id);
   }, [supabaseUserId, userData?.settings?.autoSaveInterval]);
 
-  // ── Notifications toutes les 15 min ─────────────────────────────────────
+  // ── Rappel quotidien : une seule notification par jour, à l'heure choisie ──
   useEffect(() => {
-    if (!userData || userData.settings?.notifications === false) return;
+    const s = userData?.settings;
+    if (!s || s.notifications === false || !s.dailyReminder) return;
     if (!('Notification' in window)) return;
-    const NOTIFS_FR = [
-      { title: 'Mishkat · Rappel prière 🕌', body: 'N\'oublie pas de valider tes prières du jour dans le calendrier.' },
-      { title: 'Mishkat · Tasbih 📿',        body: 'Prends un moment pour ton dhikr — 33× Subhânallah.' },
-      { title: 'Mishkat · Mémorisation 📖',  body: 'Continue ta mémorisation — consulte ton suivi Kanban.' },
-      { title: 'Mishkat · Rappel 🌙',        body: 'Revise une sourate aujourd\'hui. Tu es si proche de ton objectif !' },
-      { title: 'Mishkat · Objectifs 🎯',     body: 'Consulte tes objectifs du mois et coche ce qui est fait.' },
-    ];
-    const NOTIFS_AR = [
-      { title: 'مشكاة · تذكير الصلاة 🕌', body: 'لا تنسَ تأكيد صلواتك في التقويم.' },
-      { title: 'مشكاة · التسبيح 📿',      body: 'خصص لحظة لذكر الله — ٣٣× سبحان الله.' },
-      { title: 'مشكاة · الحفظ 📖',        body: 'واصل حفظك — راجع متابعتك في كانبان.' },
-      { title: 'مشكاة · تذكير 🌙',        body: 'راجع سورة اليوم. أنت قريب جداً من هدفك!' },
-    ];
-    const msgs = lang === 'fr' ? NOTIFS_FR : NOTIFS_AR;
-    let idx = 0;
-    const fire = () => {
+    const check = () => {
       if (Notification.permission !== 'granted') return;
-      const m = msgs[idx % msgs.length];
-      navigator.serviceWorker?.ready.then(reg =>
-        reg.showNotification(m.title, { body: m.body, icon: '/icon-192.png', badge: '/favicon-96x96.png', tag: 'mishkat-reminder' })
-      ).catch(() => new Notification(m.title, { body: m.body, icon: '/icon-192.png' }));
-      idx++;
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      if (localStorage.getItem('mishkat_last_notif_date') === today) return;
+      const [hh, mm] = s.dailyReminder.split(':').map(Number);
+      if (now.getHours() < hh || (now.getHours() === hh && now.getMinutes() < mm)) return;
+      localStorage.setItem('mishkat_last_notif_date', today);
+      const title = 'Mishkat';
+      const body = lang === 'fr' ? 'Ta séance de révision du jour t\'attend.' : 'جلسة المراجعة اليومية بانتظارك.';
+      navigator.serviceWorker?.ready
+        .then(reg => reg.showNotification(title, { body, icon: '/icon-192.png', badge: '/favicon-96x96.png', tag: 'mishkat-reminder' }))
+        .catch(() => new Notification(title, { body, icon: '/icon-192.png' }));
     };
-    if (Notification.permission === 'default') {
-      Notification.requestPermission().then(p => {
-        if (p === 'granted') fire();
-      });
-    }
-    const id = setInterval(fire, 15 * 60 * 1000);
+    check();
+    const id = setInterval(check, 60 * 1000);
     return () => clearInterval(id);
-  }, [lang, userData?.settings?.notifications]);
+  }, [lang, userData?.settings?.notifications, userData?.settings?.dailyReminder]);
 
   // ── SW update ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -402,9 +414,10 @@ export default function App() {
     <ThemeContext.Provider value={t}>
       <OfflineBanner lang={lang} />
       <Toaster
+        containerStyle={{ bottom: isMobile ? 92 : 28 }}
         position="bottom-center"
         toastOptions={{
-          style: { background: t.card, color: t.ink, border: `1px solid ${t.line}`, fontFamily: 'Inter, sans-serif', fontSize: 13, borderRadius: 10 },
+          style: { background: t.card, color: t.ink, border: `1px solid ${t.line}`, fontFamily: 'Inter, sans-serif', fontSize: 14, lineHeight: 1.45, borderRadius: 14, padding: '12px 16px', maxWidth: 420, boxShadow: '0 12px 32px -12px rgba(30,20,4,0.3)' },
           success: { iconTheme: { primary: t.accent, secondary: t.card } },
           error:   { iconTheme: { primary: '#ef4444', secondary: t.card } },
           duration: 2500,
@@ -422,18 +435,20 @@ export default function App() {
       {/* Full-screen layout */}
       <div id="mishkat-app-root" style={{ '--brand-primary': t.accent, '--brand-secondary': t.accentBright, '--brand-accent': t.accent, '--brand-text-muted': t.inkMute, '--border-subtle': t.line, '--brand-bg': t.bg, '--brand-bg-soft': t.bgSoft, width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' } as React.CSSProperties}>
         {/* Geometric background pattern */}
-        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.06, pointerEvents: 'none', zIndex: 0 }}>
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: isDark ? 0.045 : 0.07, pointerEvents: 'none', zIndex: 0 }}>
           <defs>
-            <pattern id="app-pat" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.7"/>
-              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.7" transform="rotate(45 40 40)"/>
+            {/* Khatam : étoile à huit branches, en treillis discret */}
+            <pattern id="app-pat" x="0" y="0" width="96" height="96" patternUnits="userSpaceOnUse">
+              <path d="M48 30l5.3 12.7L66 48l-12.7 5.3L48 66l-5.3-12.7L30 48l12.7-5.3z" fill="none" stroke={t.accent} strokeWidth="0.8"/>
+              <path d="M48 18v12M48 66v12M18 48h12M66 48h12" stroke={t.accent} strokeWidth="0.6"/>
+              <circle cx="0" cy="0" r="2" fill={t.accent}/><circle cx="96" cy="0" r="2" fill={t.accent}/><circle cx="0" cy="96" r="2" fill={t.accent}/><circle cx="96" cy="96" r="2" fill={t.accent}/>
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#app-pat)"/>
         </svg>
 
         {/* Sidebar — desktop (controlled: edge tab button at root level below) */}
-        <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, flexShrink: 0, width: sidebarOpen ? undefined : 0, overflow: 'hidden', transition: 'width 0.2s ease' }}>
+        <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, flexShrink: 0, width: sidebarOpen && !diftarEditing ? undefined : 0, overflow: 'hidden', transition: 'width 0.2s ease' }}>
           <AppSidebar
             active={activeTab}
             onNavigate={setActiveTab}
@@ -446,18 +461,16 @@ export default function App() {
         </div>
 
         {/* Main content */}
-        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-          <AnimatePresence mode="wait" initial={false}>
+        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 14, scale: 0.975, filter: 'blur(4px)' }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -8, scale: 0.975, filter: 'blur(4px)' }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
               style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
             >
               {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
-              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} onSaveNow={saveNow}/>}
+              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} onSaveNow={saveNow} onEditingChange={setDiftarEditing}/>}
               {!['dashboard','diftar'].includes(activeTab) && (
                 <div style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
@@ -465,27 +478,28 @@ export default function App() {
                   {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
                   {activeTab === 'memorization' && <MemorizationSection {...commonProps}/>}
                   {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
-                  {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
+                  {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang}/>}
                   {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
                   {activeTab === 'quran'        && <QuranSection userData={userData!} lang={lang} />}
                   {activeTab === 'adhkar'       && <AdhkarSection lang={lang} />}
                   {activeTab === 'quiz'         && <QuizSection lang={lang} />}
                   {activeTab === 'joursblancs'  && <JoursBlancsSection {...commonProps}/>}
+                  {activeTab === 'studio'       && <StudioSection userData={userData} lang={lang}/>}
+                  {activeTab === 'garden'       && <GardenSection userData={userData} lang={lang} onNavigate={setActiveTab}/>}
                   {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
                   {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
                 </div>
               )}
             </motion.div>
-          </AnimatePresence>
         </main>
 
         {/* Mobile bottom nav */}
-        <div className="md:hidden" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="md:hidden" style={{ position: 'relative', zIndex: 1, display: diftarEditing ? 'none' : undefined }}>
           <AppSidebar active={activeTab} onNavigate={setActiveTab} streak={userData.loginStreak} isAdmin={userData.settings?.isAdmin} lang={lang}/>
         </div>
 
         {/* Sidebar edge-reopen tab — desktop only, rendered at root level to avoid z-index burial */}
-        {!sidebarOpen && (
+        {!sidebarOpen && !diftarEditing && (
           <button
             className="hidden md:flex"
             onClick={() => setSidebarOpen(true)}
@@ -508,6 +522,21 @@ export default function App() {
           </button>
         )}
       </div>
+
+      {/* Célébration des trophées, visible depuis n'importe quel écran */}
+      {newlyUnlocked.length > 0 && (
+        <TrophyUnlockOverlay badges={newlyUnlocked} lang={lang} onDone={() => setNewlyUnlocked([])}/>
+      )}
+
+      {/* Annonce de mise à jour, une fois par utilisateur */}
+      {showWhatsNew && !showOnboarding && newlyUnlocked.length === 0 && (
+        <WhatsNew name={userData.settings?.username || 'Hafiz'} lang={lang}
+          onClose={(goTo) => {
+            try { localStorage.setItem(WHATS_NEW_KEY, '1'); } catch { /* stockage indisponible */ }
+            setShowWhatsNew(false);
+            if (goTo) setActiveTab(goTo);
+          }}/>
+      )}
 
       {/* Onboarding modal */}
       {showOnboarding && (

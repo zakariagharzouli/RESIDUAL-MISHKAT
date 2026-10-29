@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserData, UserSettings } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons, useIsNarrow } from './ui';
+import { Icon, Icons, useIsNarrow, PageHeader } from './ui';
 import { signOut } from '../lib/supabase';
 
 export const SettingsSection = ({
@@ -161,15 +161,8 @@ export const SettingsSection = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 32 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
-            {fr ? 'Paramètres' : 'الإعدادات'}
-          </div>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
-            {fr ? 'Personnalisation · accessibilité · données' : 'تخصيص · وصول · بيانات'}
-          </div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+        <PageHeader eyebrow={fr ? 'Profil, apparence, données' : 'الملف، المظهر، البيانات'} title={fr ? 'Réglages' : 'الإعدادات'}/>
         {saved && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: `${t.accentSoft}30`, color: t.accentBright, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             <Icon d={Icons.check} size={12} color={t.accentBright}/>
@@ -194,7 +187,7 @@ export const SettingsSection = ({
       ) : null}
 
       {/* 2-column grid: sidebar + content */}
-      <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '200px 1fr', gap: 14, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : '200px minmax(0, 1fr)', gap: 14, alignItems: 'start' }}>
 
         {/* Sidebar nav — desktop only */}
         {!narrow && (
@@ -220,7 +213,7 @@ export const SettingsSection = ({
         <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
           {fr ? 'Votre progression' : 'تقدمك'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
           {[
             { value: memorizedCount,          label: fr ? 'Sourates'      : 'السور'    },
             { value: completedGoals,           label: fr ? 'Objectifs'     : 'الأهداف'  },
@@ -322,7 +315,7 @@ export const SettingsSection = ({
           {/* Theme swatches — 3 color dots */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 10 }}>{fr ? 'Thème' : 'السمة'}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
               {themes.map(theme => {
                 const isActive = settings.theme === theme.id;
                 return (

@@ -5,19 +5,20 @@ import { HexColorPicker } from 'react-colorful';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
+import { DI, ToolPreview } from './DiftarUI';
 
 // Page templates
 const PAGE_TEMPLATES = [
-  { type: 'revision',   icon: '📖', labelFr: 'Révision',   labelAr: 'مراجعة',   paperStyle: 'lines'        as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Révision',      ar: 'مراجعة'      } },
-  { type: 'tafsir',     icon: '🔍', labelFr: 'Tafsir',     labelAr: 'تفسير',    paperStyle: 'arabesque'    as const, paperColor: '#f4ecd8', defaultTitle: { fr: 'Tafsir',        ar: 'تفسير'       } },
-  { type: 'dates',      icon: '📅', labelFr: 'Planning',   labelAr: 'تخطيط',    paperStyle: 'grid'         as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Planning',      ar: 'تخطيط'       } },
-  { type: 'objectives', icon: '🎯', labelFr: 'Objectifs',  labelAr: 'أهداف',    paperStyle: 'dots'         as const, paperColor: '#fff0f3', defaultTitle: { fr: 'Objectifs',     ar: 'أهداف'       } },
-  { type: 'vocab',      icon: '📝', labelFr: 'Vocabulaire',labelAr: 'مفردات',   paperStyle: 'music'        as const, paperColor: '#f8f4ff', defaultTitle: { fr: 'Vocabulaire',   ar: 'مفردات'      } },
-  { type: 'dua',        icon: '🤲', labelFr: "Dou'a",      labelAr: 'دعاء',     paperStyle: 'floral'       as const, paperColor: '#f4f8ec', defaultTitle: { fr: "Dou'a",        ar: 'دعاء'        } },
-  { type: 'notes',      icon: '💡', labelFr: 'Notes',      labelAr: 'ملاحظات',  paperStyle: 'diamond'      as const, paperColor: '#fffbe6', defaultTitle: { fr: 'Notes rapides', ar: 'ملاحظات سريعة'} },
-  { type: 'schema',     icon: '🗺️', labelFr: 'Schéma',     labelAr: 'مخطط',     paperStyle: 'hexagonal'    as const, paperColor: '#e8f4fb', defaultTitle: { fr: 'Schéma',        ar: 'مخطط ذهني'   } },
-  { type: 'tajweed',    icon: '🎵', labelFr: 'Tajweed',    labelAr: 'تجويد',    paperStyle: 'islamic_star' as const, paperColor: '#fff4e6', defaultTitle: { fr: 'Tajweed',       ar: 'تجويد'       } },
-  { type: 'custom',     icon: '✨', labelFr: 'Libre',      labelAr: 'حر',       paperStyle: 'blank'        as const, paperColor: '#ffffff',  defaultTitle: { fr: 'Nouvelle Page', ar: 'صفحة جديدة'  } },
+  { type: 'revision',   icon: 'book', labelFr: 'Révision',   labelAr: 'مراجعة',   paperStyle: 'lines'        as const, paperColor: '#fdfcf8', descFr: "Réciter et noter ses erreurs", descAr: 'تسميع وتدوين الأخطاء', defaultTitle: { fr: 'Révision',      ar: 'مراجعة'      } },
+  { type: 'tafsir',     icon: 'search', labelFr: 'Tafsir',     labelAr: 'تفسير',    paperStyle: 'arabesque'    as const, paperColor: '#f4ecd8', descFr: "Le sens des versets", descAr: 'معاني الآيات', defaultTitle: { fr: 'Tafsir',        ar: 'تفسير'       } },
+  { type: 'dates',      icon: 'calendar', labelFr: 'Planning',   labelAr: 'تخطيط',    paperStyle: 'grid'         as const, paperColor: '#fdfcf8', descFr: "Organiser sa semaine", descAr: 'تنظيم الأسبوع', defaultTitle: { fr: 'Planning',      ar: 'تخطيط'       } },
+  { type: 'objectives', icon: 'target', labelFr: 'Objectifs',  labelAr: 'أهداف',    paperStyle: 'dots'         as const, paperColor: '#fff0f3', descFr: "Ses objectifs du mois", descAr: 'أهداف الشهر', defaultTitle: { fr: 'Objectifs',     ar: 'أهداف'       } },
+  { type: 'vocab',      icon: 'list', labelFr: 'Vocabulaire',labelAr: 'مفردات',   paperStyle: 'music'        as const, paperColor: '#f8f4ff', descFr: "Mots et leur sens", descAr: 'الكلمات ومعانيها', defaultTitle: { fr: 'Vocabulaire',   ar: 'مفردات'      } },
+  { type: 'dua',        icon: 'heart', labelFr: "Dou'a",      labelAr: 'دعاء',     paperStyle: 'floral'       as const, paperColor: '#f4f8ec', descFr: "Invocations à garder", descAr: 'أدعية للحفظ', defaultTitle: { fr: "Dou'a",        ar: 'دعاء'        } },
+  { type: 'notes',      icon: 'edit', labelFr: 'Notes',      labelAr: 'ملاحظات',  paperStyle: 'diamond'      as const, paperColor: '#fffbe6', descFr: "Prendre des notes vite", descAr: 'ملاحظات سريعة', defaultTitle: { fr: 'Notes rapides', ar: 'ملاحظات سريعة'} },
+  { type: 'schema',     icon: 'layers', labelFr: 'Schéma',     labelAr: 'مخطط',     paperStyle: 'hexagonal'    as const, paperColor: '#e8f4fb', descFr: "Carte mentale", descAr: 'خريطة ذهنية', defaultTitle: { fr: 'Schéma',        ar: 'مخطط ذهني'   } },
+  { type: 'tajweed',    icon: 'wind', labelFr: 'Tajweed',    labelAr: 'تجويد',    paperStyle: 'islamic_star' as const, paperColor: '#fff4e6', descFr: "Règles de lecture", descAr: 'أحكام التلاوة', defaultTitle: { fr: 'Tajweed',       ar: 'تجويد'       } },
+  { type: 'custom',     icon: 'sparkle', labelFr: 'Libre',      labelAr: 'حر',       paperStyle: 'blank'        as const, paperColor: '#ffffff',  descFr: "Page blanche", descAr: 'صفحة فارغة', defaultTitle: { fr: 'Nouvelle Page', ar: 'صفحة جديدة'  } },
 ];
 
 const PAPER_COLOR_NAMES: Record<string, string> = {
@@ -30,6 +31,14 @@ const PAPER_COLOR_NAMES: Record<string, string> = {
   '#FF8C42': 'Orange', '#FFB347': 'Mandarine', '#FF6B6B': 'Corail',
   '#B7C4A8': 'Eucalyptus', '#D4C5B0': 'Gris chaud', '#C5C0D8': 'Myrtille',
   '#2C2C3A': 'Anthracite', '#3E2723': 'Moka',
+};
+
+/** Couleur de texte lisible sur un fond donné (encre sombre ou blanc). */
+const readableOn = (hex: string) => {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return lum > 0.62 ? '#3a2a12' : '#ffffff';
 };
 
 const PAPER_COLORS = [
@@ -62,12 +71,14 @@ const PAPER_COLORS = [
   { value: '#3E2723', label: 'Moka' },
 ];
 
-const EMOJI_LIST = [
-  '👍','❤️','⭐','✨','🎉','🏆','🎯','💡','✅','💪',
-  '😊','😍','🙏','🤍','💎','📖','✍️','🌟','🔥','🎊',
-  '🌺','🌸','🌼','💐','🦋','🌿','🌈','🌙','☀️','🕊️',
-  '🤲','🕌','📿','☪️','🕋','🌙','🌸','🤲','💚','🫶',
+const EMOJI_GROUPS: { id: string; fr: string; ar: string; list: string[] }[] = [
+  { id: 'fleurs', fr: 'Fleurs',  ar: 'زهور',   list: ['🌸','🌺','🌹','🌷','🌻','🌼','💐','🪷','🪻','🏵️','🌿','🍃','🍀','🌱','🌾','🦋'] },
+  { id: 'coeurs', fr: 'Cœurs',   ar: 'قلوب',   list: ['❤️','🧡','💛','💚','💙','💜','🤍','🤎','🩷','💕','💖','💗','🫶','🤲','🙏','😊'] },
+  { id: 'islam',  fr: 'Islam',   ar: 'إسلام',  list: ['🕌','🕋','📿','☪️','🌙','⭐','✨','🌟','💫','📖','🕊️','🤲'] },
+  { id: 'etude',  fr: 'Étude',   ar: 'دراسة',  list: ['📖','✍️','💡','✅','🎯','📌','📝','🔖','⭐','🏆','💪','👍'] },
+  { id: 'fete',   fr: 'Fête',    ar: 'احتفال', list: ['🎉','🎊','🎁','🎈','🥳','🌈','☀️','🌙','✨','💎','🔥','🏆'] },
 ];
+const EMOJI_SIZES = [{ fr: 'Petit', ar: 'صغير', v: 40 }, { fr: 'Moyen', ar: 'وسط', v: 64 }, { fr: 'Grand', ar: 'كبير', v: 100 }];
 
 // All shapes, organized by category
 const SHAPE_CATEGORIES = [
@@ -114,6 +125,44 @@ const SHAPE_CATEGORIES = [
 ];
 
 // Color palette organized by category
+// Tous les stylos, dans l'ordre des raccourcis clavier
+const TOOLS = [
+  { id: 'pen',          fr: 'Stylo',        ar: 'قلم',         hint: '1' },
+  { id: 'fountain-pen', fr: 'Plume',        ar: 'ريشة',        hint: '2' },
+  { id: 'highlighter',  fr: 'Surligneur',   ar: 'تحديد',       hint: '3' },
+  { id: 'chalk',        fr: 'Craie',        ar: 'طباشير',      hint: '4' },
+  { id: 'ruler',        fr: 'Règle',        ar: 'مسطرة',       hint: '5' },
+  { id: 'eraser',       fr: 'Gomme',        ar: 'ممحاة',       hint: '6' },
+  { id: 'spray',        fr: 'Aérosol',      ar: 'رذاذ',        hint: '7' },
+  { id: 'marker',       fr: 'Marqueur',     ar: 'ماركر',       hint: '8' },
+  { id: 'neon',         fr: 'Néon',         ar: 'نيون',        hint: '9' },
+  { id: 'pencil',       fr: 'Crayon',       ar: 'رصاص',        hint: '0' },
+  { id: 'watercolor',   fr: 'Aquarelle',    ar: 'ألوان مائية', hint: '-' },
+  { id: 'calligraphy',  fr: 'Calligraphie', ar: 'خط',          hint: ''  },
+  { id: 'dotted',       fr: 'Pointillé',    ar: 'منقّط',       hint: ''  },
+  { id: 'brush',        fr: 'Pinceau',      ar: 'فرشاة',       hint: ''  },
+];
+
+const PAPER_STYLES = [
+  { id: 'blank',        fr: 'Uni',           ar: 'أبيض'     },
+  { id: 'lines',        fr: 'Lignes',        ar: 'سطور'     },
+  { id: 'grid',         fr: 'Grille',        ar: 'شبكة'     },
+  { id: 'dots',         fr: 'Points',        ar: 'نقاط'     },
+  { id: 'floral',       fr: 'Floral',        ar: 'زهور'     },
+  { id: 'leaves',       fr: 'Feuilles',      ar: 'أوراق'    },
+  { id: 'islamic_star', fr: 'Étoiles',       ar: 'نجوم'     },
+  { id: 'arabesque',    fr: 'Arabesque',     ar: 'عربسك'    },
+  { id: 'waves',        fr: 'Vagues',        ar: 'أمواج'    },
+  { id: 'diamond',      fr: 'Diamant',       ar: 'ماسة'     },
+  { id: 'hexagonal',    fr: "Nid d'abeille", ar: 'خلية نحل' },
+  { id: 'crosses',      fr: 'Croix',         ar: 'صلبان'    },
+  { id: 'triangles',    fr: 'Triangles',     ar: 'مثلثات'   },
+  { id: 'music',        fr: 'Portée',        ar: 'مدرج'     },
+];
+
+const RECENT_KEY = 'diftar_recent_colors';
+const DEFAULT_RECENT = ['#1c1409', '#8B2635', '#1D3557', '#2D6A4F', '#C8962A', '#E07A9A'];
+
 const COLOR_PALETTE = {
   classiques: [
     '#000000', '#1a1a1a', '#4a4a4a', '#888888', '#cccccc', '#ffffff',
@@ -138,12 +187,13 @@ const COLOR_PALETTE = {
   ],
 };
 
-export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string; onSaveNow?: (data: UserData) => void }) => {
+export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string; onSaveNow?: (data: UserData) => void; onEditingChange?: (editing: boolean) => void }) => {
   const t = useT();
   const narrow = useIsNarrow();
   const isMobile = useIsMobile();
   const fr = lang === 'fr';
   const [activePageId, setActivePageId]     = useState<string | null>(null);
+  useEffect(() => { onEditingChange?.(!!activePageId); return () => onEditingChange?.(false); }, [activePageId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
   const [tool, setTool]                     = useState<'select' | 'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor' | 'calligraphy' | 'dotted' | 'brush'>('pen');
   const [shapeSize, setShapeSize]           = useState(60);
@@ -160,6 +210,17 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   const [showShapePicker, setShowShapePicker]   = useState(false);
   const [shapeCategory, setShapeCategory]       = useState(0);
   const [showEmojiPicker, setShowEmojiPicker]   = useState(false);
+  const [showMoreMenu, setShowMoreMenu]         = useState(false);
+  const [emojiGroup, setEmojiGroup]             = useState('fleurs');
+  const [viewportW, setViewportW]               = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1440));
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const [recentColors, setRecentColors]         = useState<string[]>(() => {
+    try { const v = JSON.parse(localStorage.getItem(RECENT_KEY) || 'null'); return Array.isArray(v) && v.length ? v.slice(0, 6) : DEFAULT_RECENT; } catch { return DEFAULT_RECENT; }
+  });
   const [activeEmoji, setActiveEmoji]           = useState<string | null>(null);
   const activeEmojiRef = useRef<string | null>(null);
   const [showColorWheel, setShowColorWheel]     = useState(false);
@@ -192,9 +253,11 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   // Selection tool state
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   // Stylus / palm-rejection
+  const PEN_KEY = 'mishkat_pen_seen';
+  const penSeenBefore = (() => { try { return localStorage.getItem(PEN_KEY) === '1'; } catch { return false; } })();
   const [penEverDetected, setPenEverDetected] = useState(false);
-  const [stylusMode, setStylusMode]         = useState(true);
-  const stylusModeRef = useRef(true);
+  const [stylusMode, setStylusMode]         = useState(penSeenBefore);
+  const stylusModeRef = useRef(penSeenBefore);
   // Zoom
   const [zoom, setZoom]                     = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
@@ -229,11 +292,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     return () => obs.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (activePageId && !localStorage.getItem('diftar_onboarding_v2')) {
-      setShowOnboarding(true);
-    }
-  }, [activePageId]);
+
 
   // Keep ref in sync for event handlers
   useEffect(() => {
@@ -517,8 +576,8 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     return () => window.clearTimeout(timer);
   }, [activePageId, lang, userData.settings.username]);
 
-  const drawPaperLines = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
-    if (paperStyle === 'blank') return;
+  const drawPaperLines = (ctx: CanvasRenderingContext2D, w: number, h: number, style: string = paperStyle) => {
+    if (style === 'blank') return;
     const lineColor = '#8B263512';
     const marginColor = '#8B263528';
 
@@ -527,18 +586,18 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 1;
 
-    if (paperStyle === 'lines' || paperStyle === 'grid') {
+    if (style === 'lines' || style === 'grid') {
       for (let y = 60; y < h; y += 32) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
     }
-    if (paperStyle === 'grid') {
+    if (style === 'grid') {
       for (let x = 0; x < w; x += 32) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
     }
-    if (paperStyle === 'dots') {
+    if (style === 'dots') {
       for (let x = 32; x < w; x += 32) {
         for (let y = 32; y < h; y += 32) { ctx.moveTo(x, y); ctx.arc(x, y, 0.7, 0, Math.PI * 2); }
       }
     }
-    if (paperStyle === 'arabesque') {
+    if (style === 'arabesque') {
       for (let y = 60; y < h; y += 32) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
       for (let y = 80; y < h; y += 96) {
         ctx.save();
@@ -552,7 +611,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         ctx.restore();
       }
     }
-    if (paperStyle === 'diamond') {
+    if (style === 'diamond') {
       // Diagonal grid (45°) — two sets of parallel lines
       const step = 32;
       for (let d = -h; d < w + h; d += step) {
@@ -560,7 +619,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         ctx.moveTo(d, 0); ctx.lineTo(d - h, h);
       }
     }
-    if (paperStyle === 'hexagonal') {
+    if (style === 'hexagonal') {
       // Honeycomb outlines
       const r = 22, hexH = r * Math.sqrt(3);
       for (let row = 0; row * hexH * 0.75 < h + r; row++) {
@@ -575,7 +634,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         }
       }
     }
-    if (paperStyle === 'music') {
+    if (style === 'music') {
       // Music staff: groups of 5 lines, 8px apart, with 28px gap between groups
       const staffGap = 8;
       const groupGap = 40;
@@ -588,7 +647,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         y += 5 * staffGap + groupGap;
       }
     }
-    if (paperStyle === 'floral') {
+    if (style === 'floral') {
       const spacing = 48;
       ctx.fillStyle = lineColor;
       for (let fy = spacing; fy < h; fy += spacing) {
@@ -602,7 +661,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         }
       }
     }
-    if (paperStyle === 'islamic_star') {
+    if (style === 'islamic_star') {
       const ss = 28, sp = 58;
       for (let fy = sp / 2; fy < h + sp; fy += sp * 0.866) {
         const offset = (Math.round(fy / (sp * 0.866)) % 2) * sp / 2;
@@ -618,7 +677,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         }
       }
     }
-    if (paperStyle === 'waves') {
+    if (style === 'waves') {
       for (let fy = 40; fy < h; fy += 28) {
         ctx.beginPath(); ctx.moveTo(0, fy);
         for (let fx = 0; fx < w; fx += 20) {
@@ -627,7 +686,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         ctx.stroke();
       }
     }
-    if (paperStyle === 'leaves') {
+    if (style === 'leaves') {
       ctx.fillStyle = lineColor;
       const lsp = 52;
       for (let fy = lsp; fy < h; fy += lsp) {
@@ -640,7 +699,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         }
       }
     }
-    if (paperStyle === 'crosses') {
+    if (style === 'crosses') {
       ctx.fillStyle = lineColor;
       const csp = 28;
       for (let fy = csp; fy < h; fy += csp) {
@@ -650,7 +709,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         }
       }
     }
-    if (paperStyle === 'triangles') {
+    if (style === 'triangles') {
       const ts = 28;
       for (let row = 0; row * ts < h + ts; row++) {
         for (let col = 0; col * ts < w + ts; col++) {
@@ -795,9 +854,11 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
 
   useEffect(() => { if (penEverDetected) { setStylusMode(true); } }, [penEverDetected]);
 
+  // Le message ne s'affiche qu'à la toute première détection sur cet appareil
+  const penSeenAtMount = useRef(penSeenBefore);
   useEffect(() => {
-    if (!penEverDetected) return;
-    setToastMessage( lang === 'fr' ? 'Stylet détecté — le doigt scrolle, le stylet dessine' : 'ڡلم#ال ٮشاف#اك م#ٮ للرسم ڡلم#ال ،ٮمرير#لل ع 4الإصٮ ;( ');
+    if (!penEverDetected || penSeenAtMount.current) return;
+    setToastMessage(lang === 'fr' ? 'Stylet détecté : le doigt fait défiler, le stylet dessine' : 'تم اكتشاف القلم: الإصبع للتمرير والقلم للرسم');
     const timer = setTimeout(() => setToastMessage(null), 4000);
     return () => clearTimeout(timer);
   }, [penEverDetected, lang]);
@@ -833,9 +894,29 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   };
 
   const startDrawing = (e: React.PointerEvent) => {
-    if (e.pointerType === 'pen' && !penEverDetected) { setPenEverDetected(true); }
+    if (e.pointerType === 'pen' && !penEverDetected) {
+      setPenEverDetected(true);
+      stylusModeRef.current = true;
+      try { localStorage.setItem(PEN_KEY, '1'); } catch { /* stockage indisponible */ }
+    }
     // Palm rejection MUST be first — before any pointer tracking
     if (stylusModeRef.current && e.pointerType === 'touch') return;
+
+    if (e.pointerType === 'touch') {
+      touchPtsRef.current.set(e.pointerId, e.clientY);
+      if (touchPtsRef.current.size >= 2) {
+        // Le deuxième doigt annule le début de trait du premier et passe en défilement
+        if (isDrawingRef.current) {
+          isDrawingRef.current = false; activeStrokeRef.current = null; setIsDrawing(false);
+          setUndoStack(prev => prev.slice(0, -1));
+          requestAnimationFrame(() => redrawCanvas());
+        }
+        panningRef.current = true;
+        lastPanYRef.current = avgTouchY();
+        return;
+      }
+      if (panningRef.current) return;
+    }
 
     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
     if (activeEmojiRef.current) {
@@ -867,7 +948,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
           shapeId: hit.id, handle: 'move',
           shapeStartRotation: hit.rotation || 0,
         };
-        e.currentTarget.setPointerCapture(e.pointerId);
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* le trait continue sans capture */ }
       } else {
         setSelectedShapeId(null);
         selectionDragRef.current = null;
@@ -876,7 +957,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     }
 
     // Capture pointer so events continue even if finger/stylus leaves canvas
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* le trait continue sans capture */ }
     const { x, y } = getCoords(e);
     if (tool === 'eraser') {
       const idx = shapes.findIndex((s: Shape) => Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2)) < 30);
@@ -902,9 +983,26 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
 
   const drawFrameRef = useRef<number>(undefined);
 
+  // Deux doigts sur la page = faire défiler, même en mode dessin (stylets passifs vus comme des doigts)
+  const touchPtsRef = useRef(new Map<number, number>());
+  const panningRef = useRef(false);
+  const lastPanYRef = useRef(0);
+  const avgTouchY = () => { let s = 0; touchPtsRef.current.forEach(y => { s += y; }); return s / Math.max(1, touchPtsRef.current.size); };
+
   const draw = (e: React.PointerEvent) => {
     // Palm rejection MUST be first
     if (stylusModeRef.current && e.pointerType === 'touch') return;
+
+    if (e.pointerType === 'touch' && touchPtsRef.current.has(e.pointerId)) {
+      touchPtsRef.current.set(e.pointerId, e.clientY);
+      if (panningRef.current) {
+        const y = avgTouchY();
+        const sc = scrollContainerRef.current;
+        if (sc) sc.scrollTo({ top: sc.scrollTop - (y - lastPanYRef.current), behavior: 'instant' as ScrollBehavior });
+        lastPanYRef.current = y;
+        return;
+      }
+    }
 
     // Select tool: move the dragged shape
     if (tool === 'select') {
@@ -938,7 +1036,9 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
       activeStrokeRef.current.points = dx > dy ? [start, { x, y: start.y }] : [start, { x: start.x, y }];
     } else {
       // Use coalesced events to capture all sub-frame stylus/touch points
-      const coalescedEvents = (e.nativeEvent as PointerEvent).getCoalescedEvents?.() ?? [e.nativeEvent as PointerEvent];
+      const native = e.nativeEvent as PointerEvent;
+      const coalesced = native.getCoalescedEvents?.() ?? [];
+      const coalescedEvents = coalesced.length ? coalesced : [native];
       for (const ce of coalescedEvents) {
         activeStrokeRef.current.points.push({
           x: (ce.clientX - rect.left) * scaleX,
@@ -957,6 +1057,14 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
 
   const stopDrawing = (e?: React.PointerEvent) => {
     if (e && stylusModeRef.current && e.pointerType === 'touch') return;
+    if (e && e.pointerType === 'touch') {
+      touchPtsRef.current.delete(e.pointerId);
+      if (panningRef.current) {
+        if (touchPtsRef.current.size === 0) panningRef.current = false;
+        else lastPanYRef.current = avgTouchY();
+        return;
+      }
+    }
     if (tool === 'select') { selectionDragRef.current = null; return; }
     if (!isDrawingRef.current || !activeStrokeRef.current) { isDrawingRef.current = false; setIsDrawing(false); return; }
     isDrawingRef.current = false; setIsDrawing(false);
@@ -1077,7 +1185,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     };
   }, [activePageId]);
 
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0, on: false });
 
   useEffect(() => {
     const container = scrollContainerRef.current; if (!container || !activePageId) return;
@@ -1090,14 +1198,26 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   }, [activePageId]);
 
   useEffect(() => {
-    const handle = (e: MouseEvent) => { setCursorPos({ x: e.clientX, y: e.clientY }); };
+    // Le curseur de couleur ne suit la souris que sur la page, pas sur la barre ni les menus
+    const handle = (e: MouseEvent) => { setCursorPos({ x: e.clientX, y: e.clientY, on: (e.target as HTMLElement)?.tagName === 'CANVAS' }); };
     window.addEventListener('mousemove', handle);
     return () => window.removeEventListener('mousemove', handle);
   }, []);
 
+  useEffect(() => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(color)) return;
+    const id = window.setTimeout(() => setRecentColors(prev => {
+      if (prev.includes(color)) return prev;
+      const next = [color, ...prev].slice(0, 6);
+      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* stockage indisponible */ }
+      return next;
+    }), 700);
+    return () => window.clearTimeout(id);
+  }, [color]);
+
   const closeAllPanels = () => {
     setShowToolsMenu(false); setShowCustomizationMenu(false); setShowShapePicker(false);
-    setShowPaperSettings(false); setShowEmojiPicker(false); setShowColorWheel(false);
+    setShowPaperSettings(false); setShowEmojiPicker(false); setShowColorWheel(false); setShowMoreMenu(false);
     setActiveShapeTypeWithRef(null);
     activeEmojiRef.current = null; setActiveEmoji(null);
   };
@@ -1191,7 +1311,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     };
 
     return (
-      <div ref={libraryContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
+      <div ref={libraryContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: narrow ? '16px 14px 100px' : '26px 28px 36px' }}>
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
@@ -1328,7 +1448,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                             {fr ? 'Modifié ' : 'عُدِّل '}{getTimeAgo(page.lastSaved)}
                           </div>
                         </div>
-                        <span style={{ fontSize: 15, opacity: 0.35, flexShrink: 0 }}>{tpl?.icon}</span>
+                        {tpl && <span style={{ opacity: 0.45, flexShrink: 0, display: 'inline-flex' }}><Icon d={(Icons as Record<string, React.ReactNode>)[tpl.icon]} size={15}/></span>}
                       </div>
                     </div>
                   </div>
@@ -1414,13 +1534,13 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                     onMouseEnter={e => (e.currentTarget.style.borderColor = t.accent)}
                     onMouseLeave={e => (e.currentTarget.style.borderColor = t.line)}
                   >
-                    <span style={{ fontSize: 28 }}>{tpl.icon}</span>
+                    <span style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${t.accent}14`, color: t.accent }}><Icon d={(Icons as Record<string, React.ReactNode>)[tpl.icon]} size={22}/></span>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: t.accent }}>
                         {fr ? tpl.labelFr : tpl.labelAr}
                       </div>
-                      <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, color: t.inkMute, marginTop: 2 }}>
-                        {tpl.paperStyle}
+                      <div style={{ fontSize: 11.5, fontWeight: 500, color: t.inkMute, marginTop: 3 }}>
+                        {fr ? tpl.descFr : tpl.descAr}
                       </div>
                     </div>
                   </button>
@@ -1484,6 +1604,29 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   // ──────────────────────────────────
   // CANVAS / EDITOR VIEW
   // ──────────────────────────────────
+  // Miniature d'un motif, peinte avec la même fonction que la vraie page
+  const paintPaperThumb = (el: HTMLCanvasElement | null, style: string) => {
+    const ctx = el?.getContext('2d'); if (!el || !ctx) return;
+    ctx.clearRect(0, 0, el.width, el.height);
+    ctx.fillStyle = paperColor; ctx.fillRect(0, 0, el.width, el.height);
+    // Le motif de la vraie page est très léger : on le repasse pour qu'il se voie en petit
+    try { for (let k = 0; k < 4; k++) drawPaperLines(ctx, el.width, el.height, style); } catch { /* motif non dessinable en miniature */ }
+  };
+
+  const barBtn = (active: boolean): React.CSSProperties => ({
+    width: 40, height: 40, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    background: active ? `${t.accent}22` : 'transparent', color: active ? t.accent : t.inkDim,
+  });
+  const panelStyle: React.CSSProperties = { backdropFilter: 'blur(24px)', borderRadius: 22, boxShadow: '0 18px 48px -16px rgba(40,28,8,0.35)', border: `1px solid ${t.line}`, padding: 18, display: 'flex', flexDirection: 'column', gap: 14, background: t.card };
+  const panelTitle: React.CSSProperties = { fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.inkMute };
+  const menuRow = (c: string): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 10px', borderRadius: 12, border: 'none', background: 'transparent', color: c, fontSize: 15, fontWeight: 500, cursor: 'pointer', textAlign: 'start' });
+  const zoomBy = (k: number) => {
+    setZoom(z => (k === 0 ? 1 : Math.max(0.25, Math.min(4, z * k))));
+    setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current);
+    zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500);
+  };
+  const toolLabel = (() => { const tl = TOOLS.find(x => x.id === tool); return tl ? (fr ? tl.fr : tl.ar) : ''; })();
+
   const btnStyle = (active: boolean): React.CSSProperties => active
     ? { background: t.accent, color: '#fff', border: 'none', borderRadius: '50%', padding: 10, cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }
     : { background: 'transparent', color: t.accent, border: 'none', borderRadius: '50%', padding: 10, cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' };
@@ -1494,163 +1637,185 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
       {/* TOOLBAR */}
       <div ref={toolbarRef} style={{ flexShrink: 0, position: 'relative', zIndex: 10, padding: '8px 12px 0', display: 'flex', flexDirection: 'column', pointerEvents: 'none' }}>
 
-        {/* Barre principale */}
+        {/* Barre principale : retour et titre · outil et couleurs · actions */}
         <div style={{
-          backdropFilter: 'blur(24px)', borderRadius: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-          border: `1px solid ${t.accent}1a`, padding: 8, display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', gap: 8, overflowX: 'auto', flexShrink: 0,
-          pointerEvents: 'auto', background: t.bg,
+          position: 'relative', zIndex: 45,
+          backdropFilter: 'blur(24px)', borderRadius: 22, boxShadow: '0 6px 24px -8px rgba(40,28,8,0.22)',
+          border: `1px solid ${t.line}`, padding: '6px 8px', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, rowGap: 6,
+          pointerEvents: 'auto', background: t.card,
         }}>
-          {/* Left: back + title + help */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <button
-              onClick={() => { savePage(); setActivePageId(null); }}
-              style={{ ...btnStyle(false), fontSize: 18 }}
-            >
-              ←
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+            <button onClick={() => { savePage(); setActivePageId(null); }} aria-label={fr ? 'Retour au Diftar' : 'رجوع'} style={barBtn(false)}>
+              <Icon d={DI.back} size={20} style={{ transform: fr ? 'none' : 'scaleX(-1)' }}/>
             </button>
             <input
               value={activePage?.title}
+              aria-label={fr ? 'Titre de la page' : 'عنوان الصفحة'}
               onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
-              style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 15, width: 140, background: 'transparent', border: 'none', outline: 'none', color: t.accent }}
+              style={{ fontFamily: 'Fraunces, serif', fontSize: 17, width: narrow ? 120 : 170, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: t.ink, padding: '0 4px' }}
             />
-            <button
-              onClick={() => setShowHelp(true)}
-              title={fr ? "Guide d'utilisation" : 'دليل الاستخدام'}
-              style={{ ...btnStyle(false), opacity: 0.6, fontSize: 14 }}
-            >
-              ℹ
+          </div>
+
+          {/* Outil courant + couleurs récentes + insertions (sa propre ligne quand la barre ne tient pas) */}
+          <div className="no-scrollbar" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 3, borderRadius: 16, background: t.bgSoft, border: `1px solid ${t.lineSoft}`,
+            ...(viewportW < 1280 ? { order: 3, width: '100%', overflowX: 'auto', justifyContent: viewportW < 700 ? 'flex-start' : 'center' } : {}) }}>
+            <button onClick={() => { const o = showToolsMenu; closeAllPanels(); setShowToolsMenu(!o); }} aria-expanded={showToolsMenu}
+              title={fr ? 'Stylos et outils' : 'الأقلام والأدوات'}
+              style={{ height: 44, padding: '0 10px 0 4px', borderRadius: 13, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                background: showToolsMenu ? t.card : 'transparent', boxShadow: showToolsMenu ? `0 0 0 1.5px ${t.accent}` : 'none', color: t.ink }}>
+              <span style={{ width: 52, display: 'flex', justifyContent: 'center' }}>
+                {tool === 'select' ? <Icon d={DI.select} size={20}/> : <ToolPreview id={tool} color={color}/>}
+              </span>
+              {!narrow && <span style={{ fontSize: 13, fontWeight: 600 }}>{toolLabel}</span>}
+            </button>
+            <span style={{ width: 1, height: 26, background: t.line, margin: '0 2px' }}/>
+            {recentColors.map(c => (
+              <button key={c} onClick={() => { setColor(c); if (tool === 'eraser' || tool === 'select') setTool('pen'); }} aria-label={fr ? `Couleur ${c}` : c} aria-pressed={color === c}
+                style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0, background: c, flexShrink: 0,
+                  boxShadow: color === c ? `0 0 0 2px ${t.card}, 0 0 0 4px ${t.accent}` : 'inset 0 0 0 1px rgba(0,0,0,0.12)', transform: color === c ? 'scale(1.06)' : 'none' }}/>
+            ))}
+            <button onClick={() => { const o = showCustomizationMenu; closeAllPanels(); setShowCustomizationMenu(!o); }} aria-expanded={showCustomizationMenu} title={fr ? 'Toutes les couleurs' : 'كل الألوان'} style={barBtn(showCustomizationMenu)}>
+              <Icon d={DI.palette} size={20}/>
+            </button>
+            <span style={{ width: 1, height: 26, background: t.line, margin: '0 2px' }}/>
+            <button onClick={() => { const o = showShapePicker; closeAllPanels(); setShowShapePicker(!o); }} aria-expanded={showShapePicker} title={fr ? 'Formes' : 'الأشكال'} style={barBtn(showShapePicker || !!activeShapeType)}>
+              <Icon d={DI.shapes} size={20}/>
+            </button>
+            <button onClick={() => { const o = showEmojiPicker; closeAllPanels(); setShowEmojiPicker(!o); }} aria-expanded={showEmojiPicker} title={fr ? 'Emojis' : 'إيموجي'} style={barBtn(showEmojiPicker || !!activeEmoji)}>
+              <Icon d={DI.emoji} size={20}/>
+            </button>
+            <button onClick={() => { const o = showPaperSettings; closeAllPanels(); setShowPaperSettings(!o); }} aria-expanded={showPaperSettings} title={fr ? 'Papier' : 'الورق'} style={barBtn(showPaperSettings)}>
+              <Icon d={DI.paper} size={20}/>
             </button>
           </div>
 
-          {/* Center: panel buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
-            {[
-              { id: 'tools',  emoji: '✏️', title: fr ? 'Outils' : 'أدوات',    active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
-              { id: 'colors', emoji: '🎨', title: fr ? 'Couleurs' : 'الألوان', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
-              { id: 'shapes', emoji: '⭐', title: fr ? 'Formes' : 'الأشكال',   active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
-              { id: 'emojis', emoji: '😊', title: fr ? 'Emojis' : 'إيموجي',    active: showEmojiPicker,       action: () => { closeAllPanels(); setShowEmojiPicker(v => !v); } },
-              { id: 'paper',  emoji: '⚙️', title: fr ? 'Papier' : 'الورق',     active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
-            ].map(btn => (
-              <button key={btn.id} onClick={btn.action} title={btn.title} style={btnStyle(btn.active)}>
-                {btn.emoji}
-              </button>
-            ))}
-          </div>
-
-          {/* Right: select + stylus + zoom + undo/redo + save */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <button
-              onClick={() => { closeAllPanels(); setTool(tool === 'select' ? 'pen' : 'select'); }}
-              title={fr ? 'Sélection (S)' : 'تحديد (S)'}
-              style={btnStyle(tool === 'select')}
-            >
-              ↖
+          {/* Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <button onClick={() => { closeAllPanels(); setTool(tool === 'select' ? 'pen' : 'select'); }} title={fr ? 'Sélectionner et déplacer (S)' : 'تحديد (S)'} aria-pressed={tool === 'select'} style={barBtn(tool === 'select')}>
+              <Icon d={DI.select} size={19}/>
             </button>
             <button
               onClick={() => { if (stylusMode) { setStylusMode(false); setPenEverDetected(false); } else { setStylusMode(true); setPenEverDetected(true); } }}
-              title={fr ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
-              style={{ ...btnStyle(stylusMode), minWidth: 36, background: stylusMode ? t.accentBright : 'transparent' }}
-            >
-              {stylusMode ? '🖊' : '👆'}
+              title={fr ? (stylusMode ? 'Mode stylet : le doigt fait défiler' : 'Mode doigt : le doigt dessine') : (stylusMode ? 'وضع القلم' : 'وضع الإصبع')}
+              aria-pressed={stylusMode} style={barBtn(stylusMode)}>
+              <Icon d={stylusMode ? DI.stylus : DI.finger} size={19}/>
             </button>
-            {/* Zoom */}
-            <div style={{ display: 'flex', alignItems: 'center', borderRadius: 20, padding: 4, gap: 2, background: `${t.accent}0d` }}>
-              <button onClick={() => { setZoom(z => Math.max(0.25, z / 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom -">−</button>
-              <button onClick={() => { setZoom(1); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ background: 'transparent', border: 'none', color: t.accent, fontSize: 9, fontWeight: 900, minWidth: 32, cursor: 'pointer', padding: '0 4px' }}>{Math.round(zoom * 100)}%</button>
-              <button onClick={() => { setZoom(z => Math.min(4, z * 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom +">+</button>
-            </div>
-            {/* Undo/Redo */}
-            <div style={{ display: 'flex', borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
-              <button onClick={undo} style={btnStyle(false)} title="Annuler">↶</button>
-              <button onClick={redo} style={btnStyle(false)} title="Refaire">↷</button>
-            </div>
-            <button onClick={() => setShowConfirmClear(true)} style={{ ...btnStyle(false), color: 'rgba(239,68,68,0.6)' }} title="Effacer">🗑</button>
-            <button onClick={exportPDF} style={btnStyle(false)} title="Exporter">↓</button>
-            <button
-              onClick={savePage}
-              disabled={isSaving}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 20, background: isSaving ? '#22c55e' : t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, transition: 'background 0.2s' }}
-            >
-              {isSaving ? '✓' : '💾'}
-              <span>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Sauvegarder' : 'حفظ')}</span>
+            <span style={{ width: 1, height: 26, background: t.line, margin: '0 2px' }}/>
+            <button onClick={undo} disabled={undoStack.length === 0} title={fr ? 'Annuler' : 'تراجع'} style={{ ...barBtn(false), opacity: undoStack.length ? 1 : 0.35 }}>
+              <Icon d={DI.undo} size={19}/>
+            </button>
+            <button onClick={redo} disabled={redoStack.length === 0} title={fr ? 'Rétablir' : 'إعادة'} style={{ ...barBtn(false), opacity: redoStack.length ? 1 : 0.35 }}>
+              <Icon d={DI.redo} size={19}/>
+            </button>
+            <button onClick={() => { const o = showMoreMenu; closeAllPanels(); setShowMoreMenu(!o); }} aria-expanded={showMoreMenu} title={fr ? 'Plus d\'options' : 'المزيد'} style={barBtn(showMoreMenu)}>
+              <Icon d={DI.more} size={19}/>
+            </button>
+            <button onClick={savePage} disabled={isSaving}
+              style={{ height: 40, display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', marginInlineStart: 4, borderRadius: 13, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
+                background: isSaving ? `${t.accent}22` : t.accent, color: isSaving ? t.accent : '#1a0f00', transition: 'background 0.25s, color 0.25s' }}>
+              <Icon d={DI.check} size={16} stroke={2.4}/>
+              {!narrow && <span>{isSaving ? (fr ? 'Enregistré' : 'تم الحفظ') : (fr ? 'Enregistrer' : 'حفظ')}</span>}
             </button>
           </div>
         </div>
 
+        {/* Emoji « en main » : on peut en poser plusieurs, puis Terminé */}
+        {activeEmoji && !showEmojiPicker && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, padding: '6px 6px 6px 14px', borderRadius: 999,
+            background: t.ink, color: t.bg, boxShadow: '0 10px 24px -10px rgba(20,14,6,0.5)', fontSize: 14, zIndex: 44 }}>
+            <span style={{ fontSize: 22 }}>{activeEmoji}</span>
+            <span>{fr ? 'Touche la page pour le poser' : 'المس الصفحة لوضعه'}</span>
+            <button onClick={() => { activeEmojiRef.current = null; setActiveEmoji(null); }}
+              style={{ height: 34, padding: '0 14px', borderRadius: 999, border: 'none', background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              {fr ? 'Terminé' : 'تم'}
+            </button>
+          </div>
+        )}
+
+        {/* Toucher à côté d'un menu le ferme, sans laisser de trait */}
+        {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings || showMoreMenu) && (
+          <div onPointerDown={e => { e.preventDefault(); e.stopPropagation(); closeAllPanels(); }}
+            style={{ position: 'fixed', inset: 0, zIndex: 40, pointerEvents: 'auto', background: 'rgba(20,14,6,0.06)' }}/>
+        )}
+
         {/* Panels */}
-        {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
+        {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings || showMoreMenu) && (
           <div
             style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, maxWidth: 640, margin: '0 auto', pointerEvents: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 90px)', paddingTop: 4 }}
           >
-              {showToolsMenu && (
-                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
-                  <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Outil' : 'الأداة'}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-                    {[
-                      { id: 'pen',          emoji: '✏️', label: fr ? 'Stylo'       : 'قلم',            hint: '1' },
-                      { id: 'fountain-pen', emoji: '🪶', label: fr ? 'Plume'       : 'ريشة',           hint: '2' },
-                      { id: 'highlighter',  emoji: '🖊', label: fr ? 'Surligneur'  : 'تحديد',          hint: '3' },
-                      { id: 'chalk',        emoji: '🍂', label: fr ? 'Craie'       : 'طباشير',         hint: '4' },
-                      { id: 'ruler',        emoji: '📏', label: fr ? 'Règle'       : 'مسطرة',          hint: '5' },
-                      { id: 'eraser',       emoji: '🧽', label: fr ? 'Gomme'       : 'ممحاة',          hint: '6' },
-                      { id: 'spray',        emoji: '💨', label: fr ? 'Aérosol'     : 'رذاذ',           hint: '7' },
-                      { id: 'marker',       emoji: '🖍', label: fr ? 'Marqueur'    : 'ماركر',          hint: '8' },
-                      { id: 'neon',         emoji: '⚡', label: fr ? 'Néon'        : 'نيون',           hint: '9' },
-                      { id: 'pencil',       emoji: '✎',  label: fr ? 'Crayon'      : 'رصاص',           hint: '0' },
-                      { id: 'watercolor',   emoji: '💧', label: fr ? 'Aquarelle'   : 'ألوان مائية',    hint: '-' },
-                      { id: 'calligraphy',  emoji: '🖋', label: fr ? 'Calligraphie': 'خط عربي',        hint: ''  },
-                      { id: 'dotted',       emoji: '·',  label: fr ? 'Pointillé'   : 'منقّط',          hint: ''  },
-                      { id: 'brush',        emoji: '🎨', label: fr ? 'Pinceau'     : 'فرشاة',          hint: ''  },
-                    ].map(tb => (
-                      <button
-                        key={tb.id}
-                        onClick={() => { setTool(tb.id as any); setShowToolsMenu(false); }}
-                        style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
-                          ...(tool === tb.id ? { background: t.accent, color: '#fff' } : { background: `${t.accent}0d`, color: t.inkMute }) }}
-                      >
-                        {tb.hint && <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 7, fontWeight: 900, opacity: 0.3 }}>{tb.hint}</span>}
-                        <span style={{ fontSize: 20 }}>{tb.emoji}</span>
-                        <span>{tb.label}</span>
-                      </button>
-                    ))}
+              {showMoreMenu && (
+                <div style={{ ...panelStyle, gap: 6 }}>
+                  <div style={panelTitle}>{fr ? 'Affichage' : 'العرض'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={() => zoomBy(1 / 1.2)} aria-label="Zoom −" style={barBtn(false)}><Icon d={DI.zoomOut} size={20}/></button>
+                    <button onClick={() => zoomBy(0)} style={{ flex: 1, height: 40, borderRadius: 12, border: `1px solid ${t.line}`, background: t.bgSoft, color: t.ink, fontWeight: 600, fontSize: 14, cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}>
+                      {Math.round(zoom * 100)} %
+                    </button>
+                    <button onClick={() => zoomBy(1.2)} aria-label="Zoom +" style={barBtn(false)}><Icon d={DI.zoomIn} size={20}/></button>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Taille' : 'الحجم'}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {SIZE_PRESETS.map(p => (
-                        <button
-                          key={p.value}
-                          onClick={() => { setWidth(p.value); setShowToolsMenu(false); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 10,
-                            ...(width === p.value ? { background: t.accent, color: '#fff' } : { background: `${t.accent}12`, color: t.inkMute }) }}
-                        >
-                          <div style={{ borderRadius: '50%', background: 'currentColor', width: Math.min(p.value, 16), height: Math.min(p.value, 16) }} />
-                          {p.label}
+                  <div style={{ height: 1, background: t.lineSoft, margin: '10px 0' }}/>
+                  <button onClick={() => { exportPDF(); setShowMoreMenu(false); }} style={menuRow(t.ink)}>
+                    <Icon d={DI.download} size={19}/> {fr ? 'Exporter en PDF' : 'تصدير PDF'}
+                  </button>
+                  <button onClick={() => setShowHelp(true)} style={menuRow(t.ink)}>
+                    <Icon d={DI.help} size={19}/> {fr ? 'Guide du Diftar' : 'دليل الدفتر'}
+                  </button>
+                  <button onClick={() => { setShowMoreMenu(false); setShowConfirmClear(true); }} style={menuRow('#C2412D')}>
+                    <Icon d={DI.trash} size={19}/> {fr ? 'Effacer toute la page' : 'مسح الصفحة'}
+                  </button>
+                </div>
+              )}
+
+              {showToolsMenu && (
+                <div style={panelStyle}>
+                  <div style={panelTitle}>{fr ? 'Stylos' : 'الأقلام'}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${narrow ? 3 : 4}, minmax(0, 1fr))`, gap: 8 }}>
+                    {TOOLS.map(tb => {
+                      const on = tool === tb.id;
+                      return (
+                        <button key={tb.id} onClick={() => { setTool(tb.id as any); setActiveShapeTypeWithRef(null); setShowToolsMenu(false); }} aria-pressed={on}
+                          style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 6px 10px', borderRadius: 16, cursor: 'pointer',
+                            border: `1.5px solid ${on ? t.accent : t.lineSoft}`, background: on ? `${t.accent}14` : t.card, color: on ? t.ink : t.inkDim }}>
+                          <ToolPreview id={tb.id} color={color}/>
+                          <span style={{ fontSize: 13, fontWeight: on ? 600 : 500 }}>{fr ? tb.fr : tb.ar}</span>
+                          {tb.hint && !narrow && <span style={{ position: 'absolute', top: 6, insetInlineEnd: 8, fontSize: 10, color: t.inkMute }}>{tb.hint}</span>}
                         </button>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <input type="range" min="1" max="50" value={width} onChange={e => setWidth(parseInt(e.target.value))} style={{ flex: 1, accentColor: t.accent }} />
-                      <span style={{ fontSize: 11, fontFamily: 'monospace', color: t.inkMute, minWidth: 36, textAlign: 'right' }}>{width}px</span>
-                    </div>
+                      );
+                    })}
+                  </div>
+                  <div style={panelTitle}>{fr ? 'Épaisseur' : 'السُّمك'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    {SIZE_PRESETS.map(p => {
+                      const on = width === p.value;
+                      return (
+                        <button key={p.value} onClick={() => setWidth(p.value)} aria-label={p.label} aria-pressed={on} title={p.label}
+                          style={{ width: 44, height: 44, borderRadius: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            border: `1.5px solid ${on ? t.accent : t.lineSoft}`, background: on ? `${t.accent}14` : t.card }}>
+                          <span style={{ borderRadius: '50%', background: color.startsWith('#') ? color : t.ink, width: Math.max(4, Math.min(p.value * 1.4, 26)), height: Math.max(4, Math.min(p.value * 1.4, 26)) }}/>
+                        </button>
+                      );
+                    })}
+                    <input type="range" min="1" max="50" value={width} onChange={e => setWidth(parseInt(e.target.value))} aria-label={fr ? 'Épaisseur' : 'السمك'}
+                      style={{ flex: 1, minWidth: 120, accentColor: t.accent }}/>
+                    <span style={{ fontSize: 13, color: t.inkMute, minWidth: 34, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{width}</span>
                   </div>
                 </div>
               )}
 
               {showCustomizationMenu && (
-                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
+                <div style={panelStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, border: `2px solid ${t.accent}33`, background: color, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Couleur active' : 'اللون المحدد'}</div>
+                      <div style={panelTitle}>{fr ? 'Couleur active' : 'اللون المحدد'}</div>
                       <div style={{ fontSize: 11, fontFamily: 'monospace', color: t.inkMute }}>{color}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {(Object.keys(COLOR_PALETTE) as (keyof typeof COLOR_PALETTE)[]).map(cat => (
-                      <button key={cat} onClick={() => setColorTab(cat)} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
-                        ...(colorTab === cat ? { background: t.accent, color: '#fff' } : { background: `${t.accent}12`, color: t.inkMute }) }}>
+                      <button key={cat} onClick={() => setColorTab(cat)} style={{ padding: '8px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                        ...(colorTab === cat ? { background: t.ink, color: t.bg } : { background: t.bgSoft, color: t.inkDim }) }}>
                         {cat === 'classiques' ? (fr ? 'Classiques' : 'كلاسيك') : cat === 'pastels' ? (fr ? 'Pastels' : 'باستيل') : cat === 'vives' ? (fr ? 'Vives' : 'زاهية') : cat === 'sombres' ? (fr ? 'Sombres' : 'داكنة') : (fr ? 'Spéciaux' : 'خاصة')}
                       </button>
                     ))}
@@ -1658,11 +1823,11 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 8 }}>
                     {COLOR_PALETTE[colorTab].map(c => (
                       <button key={c} onClick={() => { setColor(c); setShowCustomizationMenu(false); }}
-                        style={{ aspectRatio: '1', borderRadius: 10, border: `2px solid ${color === c ? t.accent : 'transparent'}`, cursor: 'pointer',
+                        style={{ aspectRatio: '1', borderRadius: '50%', border: 'none', cursor: 'pointer',
                           background: c.startsWith('gradient:')
                             ? ({'gradient:gold-red':'linear-gradient(135deg,#D4AF37,#8B2635)','gradient:blue-cyan':'linear-gradient(135deg,#1D3557,#A8DADC)','gradient:purple-pink':'linear-gradient(135deg,#6D597A,#FF99C8)','gradient:green-teal':'linear-gradient(135deg,#2D6A4F,#95D5B2)','gradient:sunset':'linear-gradient(135deg,#F4A261,#E76F51)','gradient:ocean':'linear-gradient(135deg,#03045E,#90E0EF)'}[c] || '#888')
                             : c.startsWith('pattern:') ? '#f5f5f5' : c,
-                          boxShadow: color === c ? `0 0 0 3px ${t.accent}40` : 'none',
+                          boxShadow: color === c ? `0 0 0 2px ${t.card}, 0 0 0 4px ${t.accent}` : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#888',
                         }}>
                         {c.startsWith('pattern:') && (c === 'pattern:dots' ? '•••' : c === 'pattern:stripes' ? '///' : '+++')}
@@ -1670,11 +1835,13 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                     ))}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button onClick={() => setShowColorWheel(v => !v)} style={{ padding: '6px 12px', borderRadius: 10, border: `1px solid ${t.accent}2e`, color: t.accent, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer', background: showColorWheel ? `${t.accent}14` : 'transparent' }}>
-                      {fr ? '🎨 Roue' : '🎨 دوار'}
+                    <button onClick={() => setShowColorWheel(v => !v)} aria-expanded={showColorWheel}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 12, border: `1px solid ${t.line}`, color: t.ink, fontSize: 14, fontWeight: 500, cursor: 'pointer', background: showColorWheel ? `${t.accent}14` : t.card }}>
+                      <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'conic-gradient(#e63946, #f4a261, #e9c46a, #2a9d8f, #457b9d, #6d597a, #e63946)' }}/>
+                      {fr ? 'Couleur sur mesure' : 'لون مخصص'}
                     </button>
                     <input type="text" value={color.startsWith('#') ? color : ''} onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setColor(e.target.value); }}
-                      style={{ flex: 1, padding: '6px 12px', borderRadius: 10, border: `1px solid ${t.accent}26`, background: 'transparent', color: t.inkMute, fontSize: 11, fontFamily: 'monospace', outline: 'none' }} placeholder="#8B2635" />
+                      style={{ flex: 1, height: 40, padding: '0 12px', borderRadius: 12, border: `1px solid ${t.line}`, background: t.bgSoft, color: t.inkDim, fontSize: 14, fontVariantNumeric: 'tabular-nums', outline: 'none' }} placeholder="#8B2635" aria-label={fr ? 'Code couleur' : 'رمز اللون'} />
                   </div>
                   {showColorWheel && (
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -1685,11 +1852,11 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
               )}
 
               {showShapePicker && (
-                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
+                <div style={panelStyle}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {SHAPE_CATEGORIES.map((cat, i) => (
-                      <button key={i} onClick={() => setShapeCategory(i)} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
-                        ...(shapeCategory === i ? { background: t.accent, color: '#fff' } : { background: `${t.accent}12`, color: t.inkMute }) }}>
+                      <button key={i} onClick={() => setShapeCategory(i)} style={{ padding: '8px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                        ...(shapeCategory === i ? { background: t.ink, color: t.bg } : { background: t.bgSoft, color: t.inkDim }) }}>
                         {cat.label[lang as 'fr' | 'ar']}
                       </button>
                     ))}
@@ -1746,70 +1913,64 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
               )}
 
               {showEmojiPicker && (
-                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
-                  <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>
-                    {fr ? 'Choisir un emoji — cliquez sur la page pour placer' : 'اختر رمزاً — انقر على الصفحة للوضع'}
+                <div style={panelStyle}>
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }} className="no-scrollbar">
+                    {EMOJI_GROUPS.map(g => (
+                      <button key={g.id} onClick={() => setEmojiGroup(g.id)} aria-pressed={emojiGroup === g.id}
+                        style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                          ...(emojiGroup === g.id ? { background: t.ink, color: t.bg } : { background: t.bgSoft, color: t.inkDim }) }}>
+                        {g.list[0]} {fr ? g.fr : g.ar}
+                      </button>
+                    ))}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 8 }}>
-                    {EMOJI_LIST.map(em => (
-                      <button key={em} onClick={() => { activeEmojiRef.current = em; setActiveEmoji(em); setShowEmojiPicker(false); }}
-                        style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: 'none', cursor: 'pointer', transition: 'transform 0.15s',
-                          background: activeEmoji === em ? `${t.accent}1a` : 'transparent',
-                          boxShadow: activeEmoji === em ? `0 0 0 2px ${t.accent}` : 'none' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${narrow ? 6 : 8}, minmax(0, 1fr))`, gap: 6 }}>
+                    {(EMOJI_GROUPS.find(g => g.id === emojiGroup) ?? EMOJI_GROUPS[0]).list.map(em => (
+                      <button key={em} onClick={() => { activeEmojiRef.current = em; setActiveEmoji(em); setShowEmojiPicker(false); }} aria-label={em}
+                        style={{ aspectRatio: '1', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, border: 'none', cursor: 'pointer',
+                          background: activeEmoji === em ? `${t.accent}1a` : t.bgSoft, boxShadow: activeEmoji === em ? `0 0 0 2px ${t.accent}` : 'none' }}>
                         {em}
                       </button>
                     ))}
                   </div>
-                  {activeEmoji && (
-                    <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: t.accentBright }}>
-                      {activeEmoji} {fr ? '— cliquez sur la page pour placer' : '— انقر على الصفحة للوضع'}
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={panelTitle}>{fr ? 'Taille' : 'الحجم'}</span>
+                    {EMOJI_SIZES.map(z => (
+                      <button key={z.v} onClick={() => setShapeSize(z.v)} aria-pressed={shapeSize === z.v}
+                        style={{ height: 40, padding: '0 14px', borderRadius: 12, cursor: 'pointer', fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6,
+                          border: `1.5px solid ${shapeSize === z.v ? t.accent : t.lineSoft}`, background: shapeSize === z.v ? `${t.accent}14` : t.card, color: t.ink }}>
+                        <span style={{ fontSize: z.v === 40 ? 14 : z.v === 64 ? 18 : 24 }}>🌸</span>{fr ? z.fr : z.ar}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {showPaperSettings && (
-                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Style de papier' : 'نوع الورق'}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {[
-                        { id: 'blank',        label: fr ? 'Blanc'        : 'أبيض'     },
-                        { id: 'lines',        label: fr ? 'Lignes'       : 'سطور'     },
-                        { id: 'grid',         label: fr ? 'Grille'       : 'شبكة'     },
-                        { id: 'dots',         label: fr ? 'Points'       : 'نقاط'     },
-                        { id: 'arabesque',    label: fr ? 'Arabesque'    : 'عربسك'    },
-                        { id: 'diamond',      label: fr ? 'Diamant'      : 'ماسة'     },
-                        { id: 'hexagonal',    label: fr ? "Nid d'abeille": 'خلية نحل' },
-                        { id: 'music',        label: fr ? 'Portée'       : 'موسيقى'   },
-                        { id: 'floral',       label: fr ? '🌸 Floral'    : '🌸 زهور'  },
-                        { id: 'islamic_star', label: fr ? '✦ Islamique'  : '✦ إسلامي'},
-                        { id: 'waves',        label: fr ? '〰 Vagues'    : '〰 أمواج' },
-                        { id: 'leaves',       label: fr ? '🍃 Feuilles'  : '🍃 أوراق' },
-                        { id: 'crosses',      label: fr ? '+ Croix'      : '+ صلبان'  },
-                        { id: 'triangles',    label: fr ? '△ Triangles'  : '△ مثلثات'},
-                      ].map(s => (
-                        <button key={s.id} onClick={() => { setPaperStyle(s.id as any); setShowPaperSettings(false); }}
-                          style={{ padding: '8px 16px', borderRadius: 16, border: `1px solid`, cursor: 'pointer', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em',
-                            ...(paperStyle === s.id ? { background: t.accent, color: '#fff', borderColor: t.accent } : { background: `${t.accent}0d`, color: t.inkMute, borderColor: 'transparent' }) }}>
-                          {s.label}
+                <div style={panelStyle}>
+                  <div style={panelTitle}>{fr ? 'Motif du papier' : 'نوع الورق'}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${narrow ? 3 : 5}, minmax(0, 1fr))`, gap: 10 }}>
+                    {PAPER_STYLES.map(ps => {
+                      const on = paperStyle === ps.id;
+                      return (
+                        <button key={ps.id} onClick={() => setPaperStyle(ps.id as any)} aria-pressed={on}
+                          style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: on ? t.ink : t.inkDim }}>
+                          <canvas width={240} height={160} ref={el => paintPaperThumb(el, ps.id)} aria-hidden="true"
+                            style={{ width: '100%', aspectRatio: '3 / 2', borderRadius: 12, border: `1.5px solid ${on ? t.accent : t.lineSoft}`, boxShadow: on ? `0 0 0 3px ${t.accent}33` : 'none' }}/>
+                          <span style={{ fontSize: 13, fontWeight: on ? 600 : 500 }}>{fr ? ps.fr : ps.ar}</span>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Couleur de papier' : 'لون الورق'}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {PAPER_COLORS.map(pc => (
-                        <button key={pc.value} onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, border: `1px solid`, cursor: 'pointer', fontSize: 10, fontWeight: 700, background: pc.value,
-                            borderColor: paperColor === pc.value ? t.accent : 'rgba(139,38,53,0.15)',
-                            color: t.accent,
-                            boxShadow: paperColor === pc.value ? `0 0 0 2px ${t.accent}` : 'none' }}>
-                          {pc.label}
-                        </button>
-                      ))}
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={panelTitle}>{fr ? 'Couleur du papier' : 'لون الورق'}</span>
+                    <span style={{ fontSize: 13, color: t.inkDim }}>{PAPER_COLORS.find(pc => pc.value === paperColor)?.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                    {PAPER_COLORS.map(pc => (
+                      <button key={pc.value} onClick={() => setPaperColor(pc.value)} aria-label={pc.label} title={pc.label} aria-pressed={paperColor === pc.value}
+                        style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: pc.value,
+                          boxShadow: paperColor === pc.value ? `0 0 0 2px ${t.card}, 0 0 0 4px ${t.accent}` : 'inset 0 0 0 1px rgba(0,0,0,0.12)' }}/>
+                    ))}
                   </div>
                 </div>
               )}
@@ -1953,7 +2114,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
         </div>
 
         {/* Custom cursor */}
-        {tool !== 'select' && (
+        {tool !== 'select' && cursorPos.on && (
           <div style={{ position: 'fixed', left: cursorPos.x, top: cursorPos.y, zIndex: 60, pointerEvents: 'none', transform: 'translate(-50%, -50%)', transition: 'left 0.03s linear, top 0.03s linear' }}>
             <div style={{
               width: activeShapeType ? 60 : (tool === 'highlighter' ? width * 6 : width + 16) * canvasScale,
@@ -2107,7 +2268,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '👆', text: lang === 'fr' ? 'Faites glisser un doigt sur le fond pour scroller naturellement (swipe)' : 'اسحب بإصبع واحد على الخلفية للتحريك الطبيعي (swipe)' },
+                    { icon: '👆', text: lang === 'fr' ? 'Glissez avec deux doigts pour faire défiler la page, même quand le stylo est actif' : 'اسحب بإصبعين لتحريك الصفحة حتى أثناء الكتابة' },
                     { icon: '🖱', text: lang === 'fr' ? 'Utilisez la roulette de la souris pour un défilement classique' : 'استخدم عجلة الماوس للتحريك التقليدي' },
                     { icon: '🖊', text: lang === 'fr' ? 'Mode Stylet : vos doigts font scroller, seul le stylet dessine (détection automatique)' : 'وضع القلم: أصابعك تقوم بالتحريك فقط، ويرسم القلم فقط (اكتشاف تلقائي)' },
                   ].map((row, i) => (

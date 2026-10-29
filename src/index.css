@@ -312,3 +312,17 @@ button { cursor: pointer; border: none; background: none; }
   animation: materialisation .5s cubic-bezier(.2,.8,.2,1) both;
   animation-delay: calc(var(--idx, 0) * 55ms);
 }
+
+/* Navigation mobile : feuille « Plus » */
+@keyframes mk-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mk-sheet { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Trophées : rayons lents derrière la médaille */
+@keyframes mk-spin { to { transform: rotate(1turn); } }
+.mk-rays { animation: mk-spin 24s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .mk-rays { animation: none; } }
+
+/* Retour tactile : chaque bouton s'enfonce légèrement quand on appuie */
+button { transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s; }
+button:not(:disabled):active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) { button:not(:disabled):active { transform: none; } }
