@@ -57,6 +57,7 @@ export default function App() {
   const [showTrialPopup, setShowTrialPopup] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [diftarEditing, setDiftarEditing] = useState(false);
 
   const isDark = userData?.settings?.darkMode ?? false;
   const themeMap = isDark ? DARK_THEMES : THEMES;
@@ -445,7 +446,7 @@ export default function App() {
         </svg>
 
         {/* Sidebar — desktop (controlled: edge tab button at root level below) */}
-        <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, flexShrink: 0, width: sidebarOpen ? undefined : 0, overflow: 'hidden', transition: 'width 0.2s ease' }}>
+        <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, flexShrink: 0, width: sidebarOpen && !diftarEditing ? undefined : 0, overflow: 'hidden', transition: 'width 0.2s ease' }}>
           <AppSidebar
             active={activeTab}
             onNavigate={setActiveTab}
@@ -467,7 +468,7 @@ export default function App() {
               style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
             >
               {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
-              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} onSaveNow={saveNow}/>}
+              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} onSaveNow={saveNow} onEditingChange={setDiftarEditing}/>}
               {!['dashboard','diftar'].includes(activeTab) && (
                 <div style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
@@ -489,12 +490,12 @@ export default function App() {
         </main>
 
         {/* Mobile bottom nav */}
-        <div className="md:hidden" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="md:hidden" style={{ position: 'relative', zIndex: 1, display: diftarEditing ? 'none' : undefined }}>
           <AppSidebar active={activeTab} onNavigate={setActiveTab} streak={userData.loginStreak} isAdmin={userData.settings?.isAdmin} lang={lang}/>
         </div>
 
         {/* Sidebar edge-reopen tab — desktop only, rendered at root level to avoid z-index burial */}
-        {!sidebarOpen && (
+        {!sidebarOpen && !diftarEditing && (
           <button
             className="hidden md:flex"
             onClick={() => setSidebarOpen(true)}
