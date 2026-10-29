@@ -5,7 +5,7 @@ import { useT } from '../lib/theme';
 import { dailyEncouragement } from '../lib/encouragements';
 import { Icon, Icons, useIsNarrow, useIsMobile, AnimatedNumber } from './ui';
 import { Skeleton } from './Skeleton';
-import { RiveAnim } from './RiveAnim';
+import { CompanionCat, RiveAnim } from './RiveAnim';
 import { FlowerArt } from './Flowers';
 import { FLOWERS } from '../lib/flowers';
 
@@ -289,7 +289,7 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
             {doneCount}<span style={{ fontSize: 13, color: t.inkMute }}>/{tasks.length}</span>
           </div>
         </div>
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={eyebrow}>{fr ? 'Ta séance du jour' : 'جلسة اليوم'}</div>
           <h2 style={{ margin: '6px 0 0', fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: isMobile ? 22 : 26, color: t.ink, lineHeight: 1.15 }}>
             {allDone
@@ -297,6 +297,7 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
               : (fr ? `${tasks.length - doneCount} étape${tasks.length - doneCount > 1 ? 's' : ''} pour aujourd'hui` : `${tasks.length - doneCount} خطوات لليوم`)}
           </h2>
         </div>
+        <CompanionCat size={isMobile ? 96 : 120} style={{ margin: isMobile ? '-20px -14px -20px -10px' : '-28px -16px -28px 0' }}/>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>

@@ -4,6 +4,7 @@ import { PlantedFlower, Surah, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { AnimatedNumber, PageHeader, useIsMobile, useIsNarrow } from './ui';
 import { FlowerArt, FlowerCollection } from './Flowers';
+import { CompanionCat } from './RiveAnim';
 import { FLOWERS, RARITIES, basket, plantFlower, unplantFlower } from '../lib/flowers';
 
 // Chaque sourate travaillée devient une plante : bourgeon (en cours),
@@ -161,7 +162,7 @@ export const GardenSection = ({ userData, setUserData, lang, onNavigate }: Props
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, direction: fr ? 'ltr' : 'rtl' }}>
-      <PageHeader eyebrow={fr ? 'Tes sourates y poussent, tes fleurs s\'y plantent' : 'سورك تنمو فيها وأزهارك تُزرع فيها'} title={fr ? 'Mon jardin' : 'حديقتي'}/>
+      <PageHeader eyebrow={fr ? 'Tes sourates y poussent, tes fleurs s\'y plantent' : 'سورك تنمو فيها وأزهارك تُزرع فيها'} title={fr ? 'Mon jardin' : 'حديقتي'} right={<CompanionCat size={narrow ? 92 : 110} style={{ margin: '-24px -10px -24px 0' }}/>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${narrow ? 2 : 4}, minmax(0, 1fr))`, gap: 10 }}>
         {[
