@@ -106,7 +106,7 @@ export const FlowerGiftOverlay = ({ f, reason, count, lang, onClose, onSeeAll }:
           <button onClick={onSeeAll} style={{ flex: 1, height: 46, borderRadius: 14, border: `1px solid ${t.line}`, background: t.bgSoft, color: t.ink, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
             {fr ? 'Ma collection' : 'مجموعتي'}
           </button>
-          <button onClick={onClose} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+          <button className="mk-shine" onClick={onClose} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
             {fr ? 'Alhamdulillah' : 'الحمد لله'}
           </button>
         </div>

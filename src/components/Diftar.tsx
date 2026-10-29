@@ -160,6 +160,12 @@ const PAPER_STYLES = [
   { id: 'music',        fr: 'Portée',        ar: 'مدرج'     },
 ];
 
+// Couleur propre à chaque modèle (pastille d'icône dans le choix des pages)
+const TEMPLATE_TINTS: Record<string, string> = {
+  revision: '#C8962A', tafsir: '#8B5E3C', dates: '#4F7CC9', objectives: '#D9536A', vocab: '#7A6AD8',
+  dua: '#3E9A7A', notes: '#E0A030', schema: '#3A8FB7', tajweed: '#B76BC9', custom: '#7D7466',
+};
+
 const RECENT_KEY = 'diftar_recent_colors';
 const DEFAULT_RECENT = ['#1c1409', '#8B2635', '#1D3557', '#2D6A4F', '#C8962A', '#E07A9A'];
 
@@ -1329,7 +1335,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
               style={{ padding: '8px 14px', borderRadius: 8, background: showSearch ? `${t.accent}14` : t.card, border: `1px solid ${showSearch ? t.accent : t.line}`, color: showSearch ? t.accent : t.inkDim, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.15s' }}>
               <Icon d={Icons.search} size={12}/> {fr ? 'Rechercher' : 'بحث'}
             </button>
-            <button onClick={() => setShowTemplateModal(true)}
+            <button className="mk-shine" onClick={() => setShowTemplateModal(true)}
               style={{ padding: '8px 16px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: 'none' }}>
               <Icon d={Icons.plus} size={13} color="#1a0f00"/> {fr ? 'Nouvelle page' : 'صفحة جديدة'}
             </button>
@@ -1498,53 +1504,49 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
           </div>
         )}
 
-        {/* Template Modal */}
+        {/* Choix du modèle : aperçu réel du papier de chaque modèle */}
         {showTemplateModal && (
-          <div
-            onClick={() => setShowTemplateModal(false)}
-            style={{ position: 'fixed', inset: 0, backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: `${t.accent}40` }}
-          >
-            <div
-              onClick={e => e.stopPropagation()}
-              style={{ background: t.bgSoft, border: `1px solid ${t.line}`, borderRadius: 24, padding: narrow ? 20 : 32, maxWidth: 520, width: '100%', display: 'flex', flexDirection: 'column', gap: 24, maxHeight: '85vh', overflowY: 'auto' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div onClick={() => setShowTemplateModal(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: narrow ? 'flex-end' : 'center', justifyContent: 'center', padding: narrow ? 0 : 24, background: 'rgba(20,14,6,0.45)', backdropFilter: 'blur(6px)', animation: 'mk-fade 0.2s ease-out' }}>
+            <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="tpl-title"
+              style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: narrow ? '26px 26px 0 0' : 28, padding: narrow ? '12px 16px calc(20px + env(safe-area-inset-bottom, 0px))' : '26px 28px 28px',
+                maxWidth: 760, width: '100%', display: 'flex', flexDirection: 'column', gap: 18, maxHeight: narrow ? '88vh' : '86vh', overflowY: 'auto',
+                boxShadow: '0 30px 80px -30px rgba(30,20,4,0.5)', animation: 'mk-sheet 0.28s cubic-bezier(0.2,0.8,0.2,1)' }}>
+              {narrow && <div style={{ width: 40, height: 4, borderRadius: 4, background: t.line, margin: '0 auto' }}/>}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div>
-                  <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 22, color: t.accent }}>
-                    {fr ? 'Choisir un modèle' : 'اختر نموذجاً'}
-                  </div>
-                  <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 700, color: t.inkMute, marginTop: 4 }}>
-                    {fr ? 'Sélectionnez le type de page' : 'اختر نوع الصفحة'}
-                  </div>
+                  <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, color: t.inkMute }}>{fr ? 'Nouvelle page' : 'صفحة جديدة'}</div>
+                  <h2 id="tpl-title" style={{ margin: '6px 0 0', fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: 28, color: t.ink }}>{fr ? 'Que veux-tu écrire ?' : 'ماذا تريد أن تكتب؟'}</h2>
                 </div>
-                <button
-                  onClick={() => setShowTemplateModal(false)}
-                  style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${t.accent}14`, color: t.inkMute, border: 'none', cursor: 'pointer', fontSize: 16 }}
-                >
-                  ×
+                <button onClick={() => setShowTemplateModal(false)} aria-label={fr ? 'Fermer' : 'إغلاق'}
+                  style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.bgSoft, color: t.inkDim, border: `1px solid ${t.lineSoft}`, cursor: 'pointer', flexShrink: 0 }}>
+                  <Icon d={DI.close} size={18}/>
                 </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 12 }}>
-                {PAGE_TEMPLATES.map(tpl => (
-                  <button
-                    key={tpl.type}
-                    onClick={() => createPage(tpl)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 20, borderRadius: 16, border: `1px solid ${t.line}`, background: tpl.paperColor, cursor: 'pointer', transition: 'border-color 0.15s', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = t.accent)}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = t.line)}
-                  >
-                    <span style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${t.accent}14`, color: t.accent }}><Icon d={(Icons as Record<string, React.ReactNode>)[tpl.icon]} size={22}/></span>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: t.accent }}>
-                        {fr ? tpl.labelFr : tpl.labelAr}
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${narrow ? 2 : 4}, minmax(0, 1fr))`, gap: 12 }}>
+                {PAGE_TEMPLATES.map((tpl, i) => {
+                  const tint = TEMPLATE_TINTS[tpl.type] ?? t.accent;
+                  return (
+                    <button key={tpl.type} onClick={() => createPage(tpl)} className="mk-tpl"
+                      style={{ '--tint': tint, '--i': i, display: 'flex', flexDirection: 'column', gap: 0, padding: 0, borderRadius: 20, border: `1px solid ${t.line}`, background: t.card, cursor: 'pointer', overflow: 'hidden', textAlign: fr ? 'left' : 'right', color: t.ink } as React.CSSProperties}>
+                      <div style={{ position: 'relative' }}>
+                        <canvas width={240} height={150} aria-hidden="true" ref={el => {
+                          const ctx = el?.getContext('2d'); if (!el || !ctx) return;
+                          ctx.fillStyle = tpl.paperColor; ctx.fillRect(0, 0, el.width, el.height);
+                          try { for (let k = 0; k < 4; k++) drawPaperLines(ctx, el.width, el.height, tpl.paperStyle); } catch { /* motif non dessinable */ }
+                        }} style={{ display: 'block', width: '100%', aspectRatio: '8 / 5' }}/>
+                        <span style={{ position: 'absolute', left: 12, bottom: -18, width: 40, height: 40, borderRadius: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tint, color: '#fff', boxShadow: `0 8px 18px -6px ${tint}` }}>
+                          <Icon d={(Icons as Record<string, React.ReactNode>)[tpl.icon]} size={19} stroke={2}/>
+                        </span>
                       </div>
-                      <div style={{ fontSize: 11.5, fontWeight: 500, color: t.inkMute, marginTop: 3 }}>
-                        {fr ? tpl.descFr : tpl.descAr}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                      <span style={{ padding: '26px 14px 14px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 15.5, fontWeight: 600 }}>{fr ? tpl.labelFr : tpl.labelAr}</span>
+                        <span style={{ fontSize: 13, color: t.inkMute, lineHeight: 1.35 }}>{fr ? tpl.descFr : tpl.descAr}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1711,7 +1713,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
             <button onClick={() => { const o = showMoreMenu; closeAllPanels(); setShowMoreMenu(!o); }} aria-expanded={showMoreMenu} title={fr ? 'Plus d\'options' : 'المزيد'} style={barBtn(showMoreMenu)}>
               <Icon d={DI.more} size={19}/>
             </button>
-            <button onClick={savePage} disabled={isSaving}
+            <button className="mk-shine" onClick={savePage} disabled={isSaving}
               style={{ height: 40, display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', marginInlineStart: 4, borderRadius: 13, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
                 background: isSaving ? `${t.accent}22` : t.accent, color: isSaving ? t.accent : '#1a0f00', transition: 'background 0.25s, color 0.25s' }}>
               <Icon d={DI.check} size={16} stroke={2.4}/>

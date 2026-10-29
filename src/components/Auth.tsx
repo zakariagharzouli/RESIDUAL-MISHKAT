@@ -168,7 +168,7 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
             </div>
           )}
 
-          <button type="submit" disabled={loading}
+          <button className="mk-shine" type="submit" disabled={loading}
             style={{ width: '100%', padding: '13px', borderRadius: 10, background: loading ? t.accentSoft : t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4 }}>
             {loading ? (fr ? 'Chargement…' : 'جاري…') : mode === 'login' ? (fr ? 'Se connecter' : 'تسجيل الدخول') : (fr ? 'Créer mon compte' : 'إنشاء الحساب')}
             {!loading && <Icon d={Icons.arrow} size={14}/>}

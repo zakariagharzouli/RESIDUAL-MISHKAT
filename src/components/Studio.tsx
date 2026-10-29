@@ -544,7 +544,7 @@ export const StudioSection = ({ userData, lang }: Props) => {
         aria-label={fr ? 'Aperçu du post' : 'معاينة'} role="img"
         style={{ width: '100%', maxWidth: format === 'story' ? (narrow ? 300 : 380) : (narrow ? 340 : 440), aspectRatio: fmt.ratio, borderRadius: 22, boxShadow: '0 24px 60px -24px rgba(30,20,4,0.45)', background: t.bgSoft }}/>
       <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 380 }}>
-        <button onClick={share} style={{ flex: 1, height: 50, borderRadius: 14, border: 'none', background: t.ink, color: t.bg, fontWeight: 600, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <button className="mk-shine" onClick={share} style={{ flex: 1, height: 50, borderRadius: 14, border: 'none', background: t.ink, color: t.bg, fontWeight: 600, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <Icon d={Icons.upload} size={18}/> {fr ? 'Partager (TikTok, WhatsApp…)' : 'مشاركة'}
         </button>
         <button onClick={async () => { const f = await makeFile(); if (f) download(f); }} aria-label={fr ? 'Enregistrer l\'image' : 'حفظ الصورة'}

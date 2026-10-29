@@ -120,7 +120,7 @@ export const TrophyUnlockOverlay = ({ badges, lang, onDone }: OverlayProps) => {
             style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: 'rgba(246,238,220,0.78)', maxWidth: 300 }}>
             {fr ? b.description : b.descriptionAr}
           </motion.p>
-          <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
+          <motion.button className="mk-shine" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
             onClick={() => (last ? onDone() : setI(i + 1))}
             style={{ marginTop: 14, minWidth: 220, padding: '14px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 15, color: '#1a0f00', background: `linear-gradient(180deg, ${MATERIALS.epic.light}, ${t.accent})`, boxShadow: `0 10px 30px -10px ${m.mid}` }}>
             {last ? (fr ? 'Bârak Allâhu fîk' : 'بارك الله فيك') : (fr ? `Suivant · ${i + 2}/${badges.length}` : `التالي · ${i + 2}/${badges.length}`)}

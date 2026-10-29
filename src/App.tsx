@@ -458,8 +458,20 @@ export default function App() {
 
       {/* Full-screen layout */}
       <div id="mishkat-app-root" style={{ '--brand-primary': t.accent, '--brand-secondary': t.accentBright, '--brand-accent': t.accent, '--brand-text-muted': t.inkMute, '--border-subtle': t.line, '--brand-bg': t.bg, '--brand-bg-soft': t.bgSoft, width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' } as React.CSSProperties}>
+        {/* Fond vivant : lumières douces qui dérivent, teinte selon le moment de la journée */}
+        {!userData.settings?.staticBackground && (() => {
+          const h = new Date().getHours();
+          const tint = h < 7 ? '#8E7CC3' : h < 11 ? '#F2B880' : h < 17 ? t.accentBright : h < 20 ? '#E8907A' : '#6C7FC9';
+          return (
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+              <div className="mk-glow mk-glow-a" style={{ background: `radial-gradient(circle, ${t.accent}${isDark ? '24' : '2e'}, transparent 65%)` }}/>
+              <div className="mk-glow mk-glow-b" style={{ background: `radial-gradient(circle, ${tint}${isDark ? '1c' : '26'}, transparent 65%)` }}/>
+              <div className="mk-glow mk-glow-c" style={{ background: `radial-gradient(circle, ${t.accentBright}${isDark ? '14' : '1c'}, transparent 65%)` }}/>
+            </div>
+          );
+        })()}
         {/* Geometric background pattern */}
-        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: isDark ? 0.045 : 0.07, pointerEvents: 'none', zIndex: 0 }}>
+        <svg width="100%" height="100%" className={userData.settings?.staticBackground ? undefined : 'mk-drift'} style={{ position: 'absolute', inset: 0, opacity: isDark ? 0.045 : 0.07, pointerEvents: 'none', zIndex: 0 }}>
           <defs>
             {/* Khatam : étoile à huit branches, en treillis discret */}
             <pattern id="app-pat" x="0" y="0" width="96" height="96" patternUnits="userSpaceOnUse">

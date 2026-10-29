@@ -58,7 +58,7 @@ export const WhatsNew = ({ name, lang, onClose }: Props) => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button onClick={() => onClose('dashboard')}
+          <button className="mk-shine" onClick={() => onClose('dashboard')}
             style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
             {fr ? 'Découvrir ma séance du jour' : 'اكتشف جلسة اليوم'}
           </button>
