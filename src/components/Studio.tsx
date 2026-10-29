@@ -39,6 +39,13 @@ const FRAMES: { id: FrameId; fr: string; ar: string; dark: boolean }[] = [
 
 const W = 1080, H = 1920;
 
+// Le vrai logo de l'app (même image que l'icône installée)
+let logoImg: HTMLImageElement | null = null;
+const loadLogo = () => new Promise<void>(res => {
+  if (logoImg?.complete) return res();
+  const img = new Image(); img.onload = () => { logoImg = img; res(); }; img.onerror = () => res(); img.src = '/icon-512.png';
+});
+
 /** Générateur pseudo-aléatoire stable : le même cadre est toujours dessiné pareil. */
 const rng = (seed: number) => () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 
@@ -177,16 +184,23 @@ function renderPost(canvas: HTMLCanvasElement, c: PostContent, scale = 1) {
   for (const l of frLines) { y += frLH; ctx.fillText(l, W / 2, y - 12); }
   if (c.src) { y += 90; ctx.font = '500 30px Inter, sans-serif'; ctx.fillStyle = gold; ctx.fillText(c.src, W / 2, y - 20); }
 
-  // Signature : Mishkat et le nom de l'utilisatrice
-  const by = H - 150;
-  ctx.fillStyle = dark ? 'rgba(11,18,48,0.55)' : 'rgba(255,255,255,0.75)';
-  roundRect(ctx, W / 2 - 250, by - 62, 500, 104, 52); ctx.fill();
-  ctx.strokeStyle = gold; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(W / 2 - 200, by + 22); ctx.lineTo(W / 2 - 200, by - 6); ctx.quadraticCurveTo(W / 2 - 200, by - 30, W / 2 - 180, by - 44); ctx.quadraticCurveTo(W / 2 - 160, by - 30, W / 2 - 160, by - 6); ctx.lineTo(W / 2 - 160, by + 22); ctx.stroke();
-  ctx.fillStyle = gold; star8(ctx, W / 2 - 180, by - 4, 9); ctx.fill();
+  // Signature : logo Mishkat et nom de l'utilisatrice
+  const by = H - 150, lg = 96;
+  ctx.font = '400 40px Fraunces, Georgia, serif';
+  const handle = c.showName && c.name ? `@${c.name.replace(/\s+/g, '').toLowerCase()}` : '';
+  ctx.font = '500 26px Inter, sans-serif'; const hw = ctx.measureText(handle).width;
+  ctx.font = '400 40px Fraunces, Georgia, serif'; const tw = Math.max(ctx.measureText('Mishkat').width, hw);
+  const pillW = lg + 24 + tw + 48, px = W / 2 - pillW / 2;
+  ctx.fillStyle = dark ? 'rgba(11,18,48,0.6)' : 'rgba(255,255,255,0.82)';
+  roundRect(ctx, px, by - 62, pillW, 124, 62); ctx.fill();
+  if (logoImg) {
+    ctx.save(); roundRect(ctx, px + 14, by - lg / 2, lg, lg, 24); ctx.clip();
+    ctx.drawImage(logoImg, px + 14, by - lg / 2, lg, lg); ctx.restore();
+  }
   ctx.textAlign = 'left'; ctx.fillStyle = ink;
-  ctx.font = '400 40px Fraunces, Georgia, serif'; ctx.fillText('Mishkat', W / 2 - 132, c.showName ? by - 6 : by + 10);
-  if (c.showName && c.name) { ctx.font = '500 26px Inter, sans-serif'; ctx.fillStyle = soft; ctx.fillText(`@${c.name.replace(/\s+/g, '').toLowerCase()}`, W / 2 - 130, by + 28); }
+  const tx = px + 14 + lg + 22;
+  ctx.font = '400 40px Fraunces, Georgia, serif'; ctx.fillText('Mishkat', tx, handle ? by - 4 : by + 14);
+  if (handle) { ctx.font = '500 26px Inter, sans-serif'; ctx.fillStyle = soft; ctx.fillText(handle, tx + 2, by + 32); }
 }
 
 interface Props { userData: UserData; lang: 'fr' | 'ar'; }
@@ -208,7 +222,7 @@ export const StudioSection = ({ userData, lang }: Props) => {
 
   // Les polices doivent être chargées avant de dessiner sur le canvas
   useEffect(() => {
-    Promise.all(['64px "Amiri Quran"', 'italic 46px Fraunces', '40px Fraunces', '600 30px Inter'].map(f => document.fonts?.load(f).catch(() => null)))
+    Promise.all([loadLogo(), ...['64px "Amiri Quran"', 'italic 46px Fraunces', '40px Fraunces', '600 30px Inter'].map(f => document.fonts?.load(f).catch(() => null))])
       .finally(() => setReady(true));
   }, []);
   useEffect(() => { if (preview.current) renderPost(preview.current, content); });

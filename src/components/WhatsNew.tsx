@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useT } from '../lib/theme';
-import { Icon, Icons, LanternMark } from './ui';
+import { Icon, Icons } from './ui';
 
 // Changer cette clé à chaque grosse mise à jour pour la réannoncer à tout le monde
 export const WHATS_NEW_KEY = 'mishkat_whats_new_2026_11';
@@ -11,9 +11,11 @@ interface Props { name: string; lang: 'fr' | 'ar'; onClose: (goTo?: string) => v
 const ITEMS = [
   { icon: Icons.check,    fr: ['Ta séance du jour', 'Chaque matin, tes révisions, ta sourate en cours et ton dhikr, au même endroit.'], ar: ['جلسة اليوم', 'مراجعاتك وسورتك الحالية وذكرك في مكان واحد كل صباح.'] },
   { icon: Icons.badge,    fr: ['62 trophées à collectionner', 'De vraies médailles en bronze, argent, or et nûr, et une célébration à chaque nouveau trophée.'], ar: ['62 وساماً', 'أوسمة من البرونز والفضة والذهب والنور.'] },
+  { icon: Icons.flower,   fr: ['Mon jardin', 'Chaque sourate mémorisée fait pousser une fleur, les révisions l\'arrosent.'], ar: ['حديقتي', 'كل سورة تحفظها تنبت زهرة.'] },
+  { icon: Icons.share,    fr: ['Crée tes posts', 'Un verset, une doua ou une pensée dans un joli cadre, à partager sur TikTok ou WhatsApp.'], ar: ['أنشئ منشوراتك', 'آية أو دعاء في إطار جميل للمشاركة.'] },
+  { icon: Icons.pen,      fr: ['Un Diftar plus doux', 'Nouveaux stylos, couleurs favorites, papiers fleuris, emojis par thème, et deux doigts pour défiler.'], ar: ['دفتر أجمل', 'أقلام وألوان وأوراق جديدة.'] },
   { icon: Icons.heart,    fr: ['Des mots de soutien', 'Mishkat t\'encourage selon ta progression, par ton prénom.'], ar: ['كلمات تشجيع', 'مشكاة تشجعك حسب تقدمك وباسمك.'] },
-  { icon: Icons.grid,     fr: ['Une navigation repensée', 'Quatre onglets clairs sur mobile, un menu rangé sur ordinateur.'], ar: ['تنقل جديد', 'أربعة تبويبات واضحة على الهاتف.'] },
-  { icon: Icons.bell,     fr: ['Des rappels plus doux', 'Un seul rappel par jour, à l\'heure que tu choisis.'], ar: ['تذكيرات ألطف', 'تذكير واحد يومياً في الوقت الذي تختاره.'] },
+    { icon: Icons.bell,     fr: ['Des rappels plus doux', 'Un seul rappel par jour, à l\'heure que tu choisis.'], ar: ['تذكيرات ألطف', 'تذكير واحد يومياً في الوقت الذي تختاره.'] },
 ];
 
 /** Annonce affichée une fois à chaque utilisateur après une grosse mise à jour. */
@@ -29,7 +31,7 @@ export const WhatsNew = ({ name, lang, onClose }: Props) => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8 }}>
           <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 14 }}
             style={{ width: 72, height: 72, borderRadius: '50%', background: `radial-gradient(circle, ${t.accent}33, transparent 70%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <LanternMark size={44} color={t.accent}/>
+            <img src="/icon-192.png" alt="Mishkat" width={64} height={64} style={{ borderRadius: 18, boxShadow: '0 8px 20px -8px rgba(30,20,4,0.5)' }}/>
           </motion.div>
           <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accent, fontWeight: 600 }}>{fr ? 'Mise à jour' : 'تحديث جديد'}</div>
           <h2 id="whats-new-title" style={{ margin: 0, fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: 28, color: t.ink, lineHeight: 1.15 }}>
