@@ -200,9 +200,11 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   // Selection tool state
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   // Stylus / palm-rejection
+  const PEN_KEY = 'mishkat_pen_seen';
+  const penSeenBefore = (() => { try { return localStorage.getItem(PEN_KEY) === '1'; } catch { return false; } })();
   const [penEverDetected, setPenEverDetected] = useState(false);
-  const [stylusMode, setStylusMode]         = useState(false);
-  const stylusModeRef = useRef(false);
+  const [stylusMode, setStylusMode]         = useState(penSeenBefore);
+  const stylusModeRef = useRef(penSeenBefore);
   // Zoom
   const [zoom, setZoom]                     = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
@@ -237,11 +239,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     return () => obs.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (penEverDetected && !localStorage.getItem('diftar_onboarding_v2')) {
-      setShowOnboarding(true);
-    }
-  }, [penEverDetected]);
+
 
   // Keep ref in sync for event handlers
   useEffect(() => {
@@ -803,8 +801,10 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
 
   useEffect(() => { if (penEverDetected) { setStylusMode(true); } }, [penEverDetected]);
 
+  // Le message ne s'affiche qu'à la toute première détection sur cet appareil
+  const penSeenAtMount = useRef(penSeenBefore);
   useEffect(() => {
-    if (!penEverDetected) return;
+    if (!penEverDetected || penSeenAtMount.current) return;
     setToastMessage(lang === 'fr' ? 'Stylet détecté : le doigt fait défiler, le stylet dessine' : 'تم اكتشاف القلم: الإصبع للتمرير والقلم للرسم');
     const timer = setTimeout(() => setToastMessage(null), 4000);
     return () => clearTimeout(timer);
@@ -841,7 +841,11 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
   };
 
   const startDrawing = (e: React.PointerEvent) => {
-    if (e.pointerType === 'pen' && !penEverDetected) { setPenEverDetected(true); }
+    if (e.pointerType === 'pen' && !penEverDetected) {
+      setPenEverDetected(true);
+      stylusModeRef.current = true;
+      try { localStorage.setItem(PEN_KEY, '1'); } catch { /* stockage indisponible */ }
+    }
     // Palm rejection MUST be first — before any pointer tracking
     if (stylusModeRef.current && e.pointerType === 'touch') return;
 
@@ -875,7 +879,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
           shapeId: hit.id, handle: 'move',
           shapeStartRotation: hit.rotation || 0,
         };
-        e.currentTarget.setPointerCapture(e.pointerId);
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* le trait continue sans capture */ }
       } else {
         setSelectedShapeId(null);
         selectionDragRef.current = null;
@@ -884,7 +888,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
     }
 
     // Capture pointer so events continue even if finger/stylus leaves canvas
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* le trait continue sans capture */ }
     const { x, y } = getCoords(e);
     if (tool === 'eraser') {
       const idx = shapes.findIndex((s: Shape) => Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2)) < 30);
@@ -946,7 +950,9 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: U
       activeStrokeRef.current.points = dx > dy ? [start, { x, y: start.y }] : [start, { x: start.x, y }];
     } else {
       // Use coalesced events to capture all sub-frame stylus/touch points
-      const coalescedEvents = (e.nativeEvent as PointerEvent).getCoalescedEvents?.() ?? [e.nativeEvent as PointerEvent];
+      const native = e.nativeEvent as PointerEvent;
+      const coalesced = native.getCoalescedEvents?.() ?? [];
+      const coalescedEvents = coalesced.length ? coalesced : [native];
       for (const ce of coalescedEvents) {
         activeStrokeRef.current.points.push({
           x: (ce.clientX - rect.left) * scaleX,
