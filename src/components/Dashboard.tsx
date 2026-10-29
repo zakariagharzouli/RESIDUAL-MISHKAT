@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
+import { dailyEncouragement } from '../lib/encouragements';
 import { Icon, Icons, useIsNarrow, useIsMobile, AnimatedNumber } from './ui';
-import { Skeleton, SkeletonCard } from './Skeleton';
+import { Skeleton } from './Skeleton';
 
 const RESUME_KEY = 'mishkat_quran_last';
 export function saveQuranPosition(surahId: number, surahName: string, ayah: number) {
@@ -22,16 +23,18 @@ async function fetchPrayerTimes(city: string): Promise<PrayerTime[]> {
     if (data.code !== 200) return [];
     const t = data.data.timings;
     return [
-      { name: 'Fajr',    nameAr: 'الفجر',   time: t.Fajr    },
-      { name: 'Dhuhr',   nameAr: 'الظهر',   time: t.Dhuhr   },
-      { name: 'Asr',     nameAr: 'العصر',   time: t.Asr     },
-      { name: 'Maghrib', nameAr: 'المغرب',  time: t.Maghrib },
-      { name: 'Isha',    nameAr: 'العشاء',  time: t.Isha    },
+      { name: 'Fajr',    nameAr: 'الفجر',  time: t.Fajr    },
+      { name: 'Dhuhr',   nameAr: 'الظهر',  time: t.Dhuhr   },
+      { name: 'Asr',     nameAr: 'العصر',  time: t.Asr     },
+      { name: 'Maghrib', nameAr: 'المغرب', time: t.Maghrib },
+      { name: 'Isha',    nameAr: 'العشاء', time: t.Isha    },
     ];
   } catch { return []; }
 }
 
-async function fetchVerseOfDay(): Promise<{ ar: string; fr: string; ref: string; surahName: string; verseNum: number } | null> {
+interface Verse { ar: string; fr: string; ref: string; }
+
+async function fetchVerseOfDay(): Promise<Verse | null> {
   try {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     const verseNum = (dayOfYear % 6236) + 1;
@@ -41,97 +44,74 @@ async function fetchVerseOfDay(): Promise<{ ar: string; fr: string; ref: string;
     ]);
     const [arData, frData] = await Promise.all([arRes.json(), frRes.json()]);
     if (arData.code !== 200) return null;
-    return {
-      ar: arData.data.text,
-      fr: frData.data.text,
-      ref: `${arData.data.surah.englishName} · ${arData.data.surah.number}:${arData.data.numberInSurah}`,
-      surahName: arData.data.surah.englishName,
-      verseNum: arData.data.numberInSurah,
-    };
+    return { ar: arData.data.text, fr: frData.data.text, ref: `${arData.data.surah.englishName} · ${arData.data.surah.number}:${arData.data.numberInSurah}` };
   } catch { return null; }
 }
 
-const FALLBACK_VERSE = {
-  ar: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ',
-  fr: 'Lis, au nom de ton Seigneur qui a créé.',
-  ref: 'Al-ʿAlaq · 96:1',
-  surahName: 'Al-ʿAlaq',
-  verseNum: 1,
-};
+const FALLBACK_VERSE: Verse = { ar: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ', fr: 'Lis, au nom de ton Seigneur qui a créé.', ref: 'Al-ʿAlaq · 96:1' };
 
-const Ring = ({ pct, size = 100, stroke = 5, color }: { pct: number; size?: number; stroke?: number; color: string }) => {
-  const r = (size - stroke * 2) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - Math.min(pct, 100) / 100);
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} opacity={0.12}/>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
-        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"/>
-    </svg>
-  );
-};
+interface Task { id: string; title: string; sub: string; ar?: string; to: string; icon: React.ReactNode; }
 
-export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; lang: string; onNavigate?: (section: string) => void }) => {
+const todayKey = () => new Date().toISOString().split('T')[0];
+const dayIndex = () => Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 864e5);
+
+/** Les étapes du jour, construites à partir de la progression réelle. */
+function buildSession(d: UserData, fr: boolean, resume: ReturnType<typeof loadQuranPosition>): Task[] {
+  const tasks: Task[] = [];
+  const reviews = d.surahs.filter(s => s.status === 'review');
+  const n = Math.min(3, reviews.length);
+  for (let k = 0; k < n; k++) {
+    const s = reviews[(dayIndex() + k) % reviews.length];
+    tasks.push({ id: `review-${s.id}`, title: fr ? `Réviser ${s.name}` : `مراجعة ${s.arabicName}`, sub: `${s.verses} ${fr ? 'versets' : 'آية'}`, ar: s.arabicName, to: 'memorization', icon: Icons.refresh });
+  }
+  const current = d.surahs.find(s => s.status === 'in_progress');
+  const next = current ?? d.surahs.find(s => s.status === 'not_started');
+  if (next) tasks.push({
+    id: `hifz-${next.id}`,
+    title: fr ? `${current ? 'Continuer' : 'Commencer'} ${next.name}` : `${current ? 'متابعة' : 'بدء'} ${next.arabicName}`,
+    sub: fr ? `Mémorisation · ${next.verses} versets` : `الحفظ · ${next.verses} آية`, ar: next.arabicName, to: 'memorization', icon: Icons.book,
+  });
+  if (resume) tasks.push({ id: 'read', title: fr ? 'Reprendre la lecture' : 'متابعة القراءة', sub: `${resume.surahName} · v.${resume.ayah}`, to: 'quran', icon: Icons.bookmark });
+  const morning = new Date().getHours() < 15;
+  tasks.push({ id: morning ? 'adhkar-matin' : 'adhkar-soir', title: fr ? (morning ? 'Adhkâr du matin' : 'Adhkâr du soir') : (morning ? 'أذكار الصباح' : 'أذكار المساء'), sub: fr ? '8 invocations · 5 min' : '8 أذكار · 5 دقائق', to: 'adhkar', icon: Icons.moon });
+  tasks.push({ id: 'tasbih', title: fr ? '33 × Subhân Allâh' : 'سبحان الله ×33', sub: fr ? 'Tasbih' : 'التسبيح', to: 'tasbih', icon: Icons.beads });
+  return tasks;
+}
+
+interface DashboardProps {
+  userData: UserData;
+  setUserData?: (updater: (prev: UserData) => UserData) => void;
+  lang: string;
+  onNavigate?: (section: string) => void;
+}
+
+export const Dashboard = ({ userData, setUserData, lang, onNavigate }: DashboardProps) => {
   const t = useT();
   const narrow = useIsNarrow();
   const isMobile = useIsMobile();
   const fr = lang === 'fr';
+  const L = fr ? 'fr' : 'ar';
 
-  const memorizedCount  = userData.surahs.filter(s => s.status === 'memorized').length;
-  const inProgressSurah = userData.surahs.find(s => s.status === 'in_progress') ?? null;
-  const reviewSurahs    = userData.surahs.filter(s => s.status === 'review').slice(0, 5);
-  const totalVersets    = userData.surahs.filter(s => s.status === 'memorized').reduce((acc, s) => acc + s.verses, 0);
-  const streak          = userData.loginStreak || 1;
-  const username        = userData.settings?.username || 'Hafiz';
-  const city            = userData.settings?.city;
+  const memorizedCount = userData.surahs.filter(s => s.status === 'memorized').length;
+  const totalVersets   = userData.surahs.filter(s => s.status === 'memorized').reduce((acc, s) => acc + s.verses, 0);
+  const streak         = userData.loginStreak || 1;
+  const username       = userData.settings?.username || 'Hafiz';
+  const city           = userData.settings?.city;
+  const resumePos      = loadQuranPosition();
 
-  const [verse, setVerse]             = useState<typeof FALLBACK_VERSE | null>(null);
+  const [verse, setVerse]           = useState<Verse | null>(null);
+  const [showTr, setShowTr]         = useState(false);
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
-  const [nowTime, setNowTime]         = useState(new Date());
-  const [verseLoading, setVerseLoading]       = useState(true);
-  const [prayerLoading, setPrayerLoading]     = useState(!!city);
-  const [verseFlipped, setVerseFlipped]       = useState(false);
-  const [pullY, setPullY]             = useState(0);
-  const [pulling, setPulling]         = useState(false);
-  const [refreshing, setRefreshing]   = useState(false);
-  const resumePos = loadQuranPosition();
+  const [prayerLoading, setPrayerLoading] = useState(!!city);
+  const [nowTime, setNowTime]       = useState(new Date());
 
-  const refresh = useCallback(async () => {
-    setRefreshing(true);
-    setVerseLoading(true);
-    if (city) setPrayerLoading(true);
-    await Promise.all([
-      fetchVerseOfDay().then(v => { setVerse(v ?? FALLBACK_VERSE); setVerseLoading(false); }),
-      city ? fetchPrayerTimes(city).then(p => { setPrayerTimes(p); setPrayerLoading(false); }) : Promise.resolve(),
-    ]);
-    setRefreshing(false);
+  useEffect(() => { fetchVerseOfDay().then(v => setVerse(v ?? FALLBACK_VERSE)); }, []);
+  useEffect(() => {
+    if (!city) return;
+    setPrayerLoading(true);
+    fetchPrayerTimes(city).then(p => { setPrayerTimes(p); setPrayerLoading(false); });
   }, [city]);
-
-  useEffect(() => {
-    fetchVerseOfDay().then(v => { setVerse(v ?? FALLBACK_VERSE); setVerseLoading(false); });
-  }, []);
-  useEffect(() => {
-    if (city) fetchPrayerTimes(city).then(p => { setPrayerTimes(p); setPrayerLoading(false); });
-  }, [city]);
-
-  // Pull-to-refresh touch handlers
-  const touchStartY = React.useRef(0);
-  const onTouchStart = (e: React.TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
-  const onTouchMove  = (e: React.TouchEvent) => {
-    const el = e.currentTarget as HTMLElement;
-    if (el.scrollTop > 0) return;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (dy > 0) { setPulling(true); setPullY(Math.min(dy * 0.4, 60)); }
-  };
-  const onTouchEnd = () => {
-    if (pullY > 45) refresh();
-    setPulling(false); setPullY(0);
-  };
-  useEffect(() => {
-    const id = setInterval(() => setNowTime(new Date()), 30000);
-    return () => clearInterval(id);
-  }, []);
+  useEffect(() => { const id = setInterval(() => setNowTime(new Date()), 30000); return () => clearInterval(id); }, []);
 
   const nextPrayer = useMemo(() => {
     if (!prayerTimes.length) return null;
@@ -144,453 +124,248 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
     return { ...prayerTimes[0], minsLeft: 24 * 60 - now + h * 60 + m };
   }, [prayerTimes, nowTime]);
 
-  const dateStr = new Date().toLocaleDateString(fr ? 'fr-FR' : 'ar-EG', {
-    weekday: 'long', day: 'numeric', month: 'long',
+  // ── Séance du jour ──
+  const tasks = useMemo(() => buildSession(userData, fr, resumePos), [userData.surahs, fr]); // eslint-disable-line react-hooks/exhaustive-deps
+  const today = todayKey();
+  const done = new Set(userData.dailySession?.date === today ? userData.dailySession.done : []);
+  const doneCount = tasks.filter(x => done.has(x.id)).length;
+  const allDone = tasks.length > 0 && doneCount === tasks.length;
+  const toggle = useCallback((id: string) => {
+    setUserData?.(prev => {
+      const cur = prev.dailySession?.date === today ? prev.dailySession.done : [];
+      const nextDone = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+      return { ...prev, dailySession: { date: today, done: nextDone, total: tasks.length } };
+    });
+  }, [setUserData, today, tasks.length]);
+
+  const message = useMemo(() => dailyEncouragement(userData, L), [userData.loginStreak, userData.badges.length, L]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dateStr = new Date().toLocaleDateString(fr ? 'fr-FR' : 'ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+  let hijri = '';
+  try { hijri = new Intl.DateTimeFormat(fr ? 'fr-FR-u-ca-islamic-umalqura' : 'ar-SA-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()).replace(/\s?(AH|ap\. ?H\.?|هـ)$/i, ''); } catch { /* ignoré */ }
+
+  // ── Semaine ──
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 864e5);
+    const key = d.toISOString().split('T')[0];
+    const entry = userData.calendar.find(c => c.date === key);
+    const prayers = entry?.prayers?.length ?? 0;
+    return { key, label: d.toLocaleDateString(fr ? 'fr-FR' : 'ar-EG', { weekday: 'narrow' }), prayers, today: i === 6 };
   });
 
-  // Monthly progress — calendar entries this month
-  const now = new Date();
-  const monthSessions = userData.calendar.filter(e => {
-    const d = new Date(e.date);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  });
-  const monthTarget = 30;
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 20 };
+  const eyebrow: React.CSSProperties = { fontSize: 11, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 500 };
+  const C = 2 * Math.PI * 34;
 
-  // Verse tiles for in-progress surah
-  const tiles = inProgressSurah
-    ? Array.from({ length: Math.min(inProgressSurah.verses, 40) }, (_, i) => {
-        const ratio = inProgressSurah.verses > 0 ? i / inProgressSurah.verses : 0;
-        if (ratio < 0.4)  return 'memorized';
-        if (ratio < 0.55) return 'progress';
-        return 'none';
-      })
-    : [];
+  const stats = [
+    { icon: Icons.flame,    value: streak,         suffix: '',     label: fr ? 'Jours de suite'    : 'يوم متواصل', to: 'calendar' },
+    { icon: Icons.book,     value: totalVersets,   suffix: '',     label: fr ? 'Versets mémorisés' : 'آية محفوظة', to: 'memorization' },
+    { icon: Icons.bookmark, value: memorizedCount, suffix: '/114', label: fr ? 'Sourates'          : 'سورة',       to: 'memorization' },
+    { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, suffix: '', label: fr ? 'Trophées' : 'وسام', to: 'badges' },
+  ];
 
-  const card: React.CSSProperties = {
-    background: t.card, border: `1px solid ${t.line}`, borderRadius: 12,
-  };
-
-  return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: 0, height: '100%', overflowY: 'auto', transform: `translateY(${pullY}px)`, transition: pulling ? 'none' : 'transform 0.3s ease' }}
-      className="no-scrollbar"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
-      {/* Pull-to-refresh indicator */}
-      {(pulling || refreshing) && (
-        <div style={{ position: 'absolute', top: -40, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', height: 40 }}>
-          <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${t.accent}`, borderTopColor: 'transparent', animation: refreshing ? 'spin 0.7s linear infinite' : 'none', transform: `rotate(${pullY * 3}deg)`, transition: 'transform 0.05s' }}/>
-        </div>
-      )}
-      <div style={{ padding: isMobile ? '16px 14px 100px' : narrow ? '16px 16px 24px' : '26px 28px 24px', display: 'flex', flexDirection: 'column', gap: 20, minHeight: '100%' }}>
-
-        {/* ── Header ─────────────────────────────────────── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
-              {dateStr}
-            </div>
-            <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-              {fr ? `As-salāmu ʿalaykum,` : 'السلام عليك،'}<br/>
-              <span style={{ color: t.accent }}>{username}</span>
-            </h1>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginTop: 4 }}>
-            <motion.button whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06, transition: { duration: 0.12 } }} onClick={() => onNavigate?.('memorization')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
-              <Icon d={Icons.search} size={14}/>
-            </motion.button>
-            <motion.button whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06, transition: { duration: 0.12 } }} onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
-              <Icon d={Icons.bell} size={14}/>
-            </motion.button>
-            <motion.button whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06, transition: { duration: 0.12 } }} onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 16, color: '#1a0f00', fontWeight: 400, border: 'none', cursor: 'pointer' }}>
-              {username.charAt(0).toUpperCase()}
-            </motion.button>
+  const Session = (
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+      aria-label={fr ? 'Ta séance du jour' : 'جلسة اليوم'}
+      style={{ ...card, padding: isMobile ? 18 : 24, display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', overflow: 'hidden',
+        borderColor: allDone ? `${t.accent}80` : t.line, boxShadow: allDone ? `0 0 0 4px ${t.accent}1a, 0 18px 40px -20px ${t.accent}` : 'none', transition: 'box-shadow .5s, border-color .5s' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+        <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+          <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
+            <circle cx="40" cy="40" r="34" fill="none" stroke={t.lineSoft} strokeWidth="7"/>
+            <motion.circle cx="40" cy="40" r="34" fill="none" stroke={t.accent} strokeWidth="7" strokeLinecap="round" strokeDasharray={C}
+              initial={{ strokeDashoffset: C }} animate={{ strokeDashoffset: C * (1 - (tasks.length ? doneCount / tasks.length : 0)) }}
+              transition={{ type: 'spring', stiffness: 70, damping: 16 }}/>
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink }}>
+            {doneCount}<span style={{ fontSize: 13, color: t.inkMute }}>/{tasks.length}</span>
           </div>
         </div>
-
-        {/* ── Stats tiles row ────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
-          {[
-            { icon: Icons.flame,    value: streak,        suffix: '',    label: fr ? 'Jours de suite'    : 'يوم متواصل', to: 'calendar',     shimmer: true },
-            { icon: Icons.book,     value: totalVersets,  suffix: '',    label: fr ? 'Versets mémorisés' : 'آية محفوظة', to: 'memorization', shimmer: false },
-            { icon: Icons.bookmark, value: memorizedCount, suffix: '/114', label: fr ? 'Sourates'        : 'سورة',       to: 'memorization', shimmer: false },
-            { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, suffix: '', label: fr ? 'Trophées' : 'وسام', to: 'badges', shimmer: false },
-          ].map((s, i) => (
-            <motion.button
-              key={i}
-              onClick={() => onNavigate?.(s.to)}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              whileHover={{ y: -3, transition: { duration: 0.15 } }}
-              whileTap={{ scale: 0.97 }}
-              className={s.shimmer ? 'anim-shimmer' : ''}
-              style={{ ...card, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: 'left', color: t.ink }}
-            >
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: `${t.accent}16`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon d={s.icon} size={18} color={t.accent}/>
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: t.ink, fontWeight: 360, lineHeight: 1 }}>
-                  <AnimatedNumber value={s.value}/>{s.suffix && <span style={{ fontSize: 15, color: t.inkMute }}>{s.suffix}</span>}
-                </div>
-                <div style={{ fontSize: 12, color: t.inkMute, marginTop: 5 }}>{s.label}</div>
-              </div>
-            </motion.button>
-          ))}
+        <div style={{ minWidth: 0 }}>
+          <div style={eyebrow}>{fr ? 'Ta séance du jour' : 'جلسة اليوم'}</div>
+          <h2 style={{ margin: '6px 0 0', fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: isMobile ? 22 : 26, color: t.ink, lineHeight: 1.15 }}>
+            {allDone
+              ? (fr ? 'Séance accomplie, bârak Allâhu fîk' : 'أتممت جلسة اليوم، بارك الله فيك')
+              : (fr ? `${tasks.length - doneCount} étape${tasks.length - doneCount > 1 ? 's' : ''} pour aujourd'hui` : `${tasks.length - doneCount} خطوات لليوم`)}
+          </h2>
         </div>
+      </div>
 
-        {/* ── Main 2-column grid ─────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0,2fr) minmax(0,1fr)', gap: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {tasks.map((task, i) => {
+          const on = done.has(task.id);
+          return (
+            <motion.div key={task.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 + i * 0.05 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i ? `1px solid ${t.lineSoft}` : 'none' }}>
+              <button onClick={() => toggle(task.id)} aria-pressed={on} aria-label={on ? (fr ? `Décocher ${task.title}` : 'إلغاء') : (fr ? `Cocher ${task.title}` : 'تم')}
+                style={{ width: 44, height: 44, margin: -6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+                <motion.span animate={{ scale: on ? [1, 1.25, 1] : 1, backgroundColor: on ? t.accent : 'rgba(0,0,0,0)', borderColor: on ? t.accent : t.line }}
+                  transition={{ duration: 0.35 }}
+                  style={{ width: 28, height: 28, borderRadius: '50%', border: '1.5px solid', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {on && <Icon d={Icons.check} size={15} stroke={2.6} color="#1a0f00"/>}
+                </motion.span>
+              </button>
+              <button onClick={() => onNavigate?.(task.to)}
+                style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', textAlign: fr ? 'left' : 'right', padding: 0, color: t.ink }}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: on ? t.inkMute : t.ink, textDecoration: on ? 'line-through' : 'none', textDecorationColor: t.accent, transition: 'color .3s' }}>{task.title}</span>
+                  <span style={{ display: 'block', fontSize: 13, color: t.inkMute, marginTop: 1 }}>{task.sub}</span>
+                </span>
+                {task.ar
+                  ? <span style={{ fontFamily: "'Amiri Quran', Amiri, serif", fontSize: 20, color: on ? t.inkMute : t.accent, flexShrink: 0 }} lang="ar">{task.ar}</span>
+                  : <span style={{ color: t.inkMute, flexShrink: 0, display: 'inline-flex' }}><Icon d={task.icon} size={18}/></span>}
+                <span style={{ color: t.inkMute, display: 'inline-flex', transform: fr ? 'none' : 'scaleX(-1)' }}><Icon d={Icons.arrow} size={14}/></span>
+              </button>
+            </motion.div>
+          );
+        })}
+      </div>
+    </motion.section>
+  );
 
-          {/* ── LEFT COLUMN ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+  const Stats = (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+      {stats.map((s, i) => (
+        <motion.button key={s.label} onClick={() => onNavigate?.(s.to)}
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05, duration: 0.4 }}
+          whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
+          style={{ ...card, borderRadius: 16, padding: '14px 16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, cursor: 'pointer', textAlign: 'left', color: t.ink }}>
+          <span style={{ color: t.accent, display: 'inline-flex' }}><Icon d={s.icon} size={18}/></span>
+          <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, fontWeight: 360, lineHeight: 1 }}>
+            <AnimatedNumber value={s.value}/>{s.suffix && <span style={{ fontSize: 14, color: t.inkMute }}>{s.suffix}</span>}
+          </span>
+          <span style={{ fontSize: 12, color: t.inkMute }}>{s.label}</span>
+        </motion.button>
+      ))}
+    </div>
+  );
 
-            {/* Resume Quran reading card */}
-            {resumePos && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-              whileHover={{ y: -2, scale: 1.005, transition: { duration: 0.15 } }}
-              whileTap={{ scale: 0.97 }}
-                style={{ ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', background: `linear-gradient(135deg, ${t.accent}0e, ${t.card})` }}
-                onClick={() => onNavigate?.('quran')}
-              >
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon d={Icons.bookmark} size={16} color="#1a0f00"/>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 9, color: t.accentBright, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>
-                    {fr ? 'Reprendre la lecture' : 'متابعة القراءة'}
-                  </div>
-                  <div style={{ fontSize: 13, color: t.ink, fontWeight: 600, marginTop: 2 }}>
-                    {resumePos.surahName} · v.{resumePos.ayah}
-                  </div>
-                </div>
-                <Icon d={Icons.arrow} size={14} color={t.inkMute}/>
-              </motion.div>
-            )}
-
-            {/* Hero card — verse du jour avec flip card */}
-            <div className="anim-souffle anim-d2" style={{ ...card, padding: '24px 28px', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, ${t.accent}0d, transparent 60%)`, pointerEvents: 'none' }}/>
-
-              <div style={{ position: 'relative' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
-                    {inProgressSurah
-                      ? (fr ? `À reprendre · ${inProgressSurah.name}` : `للمتابعة · ${inProgressSurah.arabicName}`)
-                      : (fr ? 'Verset du jour — cliquer pour la traduction' : 'آية اليوم — انقر للترجمة')
-                    }
-                  </div>
-                  {inProgressSurah && (
-                    <div style={{ padding: '3px 10px', borderRadius: 999, background: `${t.accent}22`, border: `1px solid ${t.accent}44`, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.accent }}>
-                      {fr ? 'EN COURS' : 'قيد الحفظ'}
-                    </div>
-                  )}
-                </div>
-
-                {verseLoading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0' }}>
-                    <div className="skeleton-line lg" style={{ width: '90%' }}/>
-                    <div className="skeleton-line" style={{ width: '75%' }}/>
-                    <div className="skeleton-line sm" style={{ width: '50%' }}/>
-                  </div>
-                ) : (
-                  <div
-                    className={`flip-container${verseFlipped ? ' is-flipped' : ''}`}
-                    onClick={() => setVerseFlipped(f => !f)}
-                    title={verseFlipped ? (fr ? 'Voir l\'arabe' : 'عرض العربية') : (fr ? 'Voir la traduction' : 'عرض الترجمة')}
-                  >
-                    <div className="flip-inner">
-                      {/* RECTO — texte arabe */}
-                      <div className="flip-front">
-                        <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 24, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
-                          {verse?.ar}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-                            {verse?.ref}
-                          </div>
-                          <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em' }}>
-                            {fr ? 'Cliquer pour traduction →' : '← انقر للترجمة'}
-                          </div>
-                        </div>
-                      </div>
-                      {/* VERSO — traduction */}
-                      <div className="flip-back">
-                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 14, color: t.ink, lineHeight: 1.8 }}>
-                          « {verse?.fr} »
-                        </div>
-                        <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 10 }}>
-                          {verse?.ref}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-                  <motion.button
-                    whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.04, transition: { duration: 0.12 } }}
-                    onClick={() => onNavigate?.('memorization')}
-                    style={{ padding: '9px 18px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: 'none' }}>
-                    {fr ? 'Mémorisation' : 'الحفظ'} <Icon d={Icons.arrow} size={12}/>
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.04, transition: { duration: 0.12 } }}
-                    onClick={() => onNavigate?.('kanban')}
-                    style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <Icon d={Icons.grid} size={12}/> {fr ? 'Kanban' : 'كانبان'}
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.04, transition: { duration: 0.12 } }}
-                    onClick={() => onNavigate?.('diftar')}
-                    style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <Icon d={Icons.edit} size={12}/> {fr ? 'Diftar' : 'الدفتر'}
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-
-            {/* Sourate en cours */}
-            {inProgressSurah && (
-              <div style={{ ...card, padding: '18px 22px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>
-                      {fr ? 'Sourate en cours' : 'السورة الحالية'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 17, color: t.ink, fontWeight: 300 }}>{inProgressSurah.name}</span>
-                      <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 15, color: t.accentBright }}>{inProgressSurah.arabicName}</span>
-                      <span style={{ fontSize: 11, color: t.inkMute }}>{Math.round(tiles.filter(x => x === 'memorized').length / Math.max(tiles.length, 1) * inProgressSurah.verses)}/{inProgressSurah.verses} {fr ? 'versets' : 'آية'}</span>
-                    </div>
-                  </div>
-                  <button style={{ fontSize: 11, color: t.accentBright, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Inter' }}>
-                    {fr ? 'Voir tout' : 'عرض الكل'}
-                  </button>
-                </div>
-
-                {/* Verse tiles */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                  {tiles.map((status, i) => (
-                    <div key={i} style={{
-                      width: 18, height: 18, borderRadius: 4,
-                      background: status === 'memorized' ? t.accent : status === 'progress' ? `${t.accent}40` : t.cardElev,
-                      border: `1px solid ${status === 'none' ? t.line : 'transparent'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'Fraunces, serif', fontSize: 7, color: status === 'memorized' ? '#1a0f00' : t.inkMute,
-                    }}>{i + 1}</div>
-                  ))}
-                </div>
-
-                {/* Legend */}
-                <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
-                  {[
-                    { color: t.accent, label: fr ? 'Mémorisé' : 'محفوظ' },
-                    { color: `${t.accent}40`, label: fr ? 'En cours' : 'قيد الحفظ' },
-                    { color: t.cardElev, label: fr ? 'À venir' : 'قادم' },
-                  ].map(item => (
-                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: 2, background: item.color, border: `1px solid ${t.line}` }}/>
-                      <span style={{ fontSize: 9.5, color: t.inkMute }}>{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Prayer times */}
-            {(prayerLoading || prayerTimes.length > 0) && (
-              <div style={{ ...card, padding: '18px 22px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-                    {fr ? 'Horaires de prière' : 'مواقيت الصلاة'}
-                  </div>
-                  {city && <div style={{ fontSize: 10, color: t.inkMute }}>{city}</div>}
-                </div>
-                {prayerLoading ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
-                    {[1,2,3,4,5].map(i => <Skeleton key={i} height={52} borderRadius={8}/>)}
-                  </div>
-                ) : (
-                  <>
-                    {/* Next prayer ring */}
-                    {nextPrayer && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, padding: '12px 16px', borderRadius: 10, background: `${t.accent}0e`, border: `1px solid ${t.accent}33` }}>
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <Ring pct={(() => {
-                            const idx = prayerTimes.findIndex(p => p.name === nextPrayer.name);
-                            const prev = prayerTimes[idx > 0 ? idx - 1 : prayerTimes.length - 1];
-                            const [ph, pm] = prev.time.split(':').map(Number);
-                            const [nh, nm] = nextPrayer.time.split(':').map(Number);
-                            const total = ((nh * 60 + nm) - (ph * 60 + pm) + 1440) % 1440;
-                            return total > 0 ? Math.max(0, 100 - (nextPrayer.minsLeft / total * 100)) : 0;
-                          })()} size={64} stroke={4} color={t.accent}/>
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 9, color: t.accent, fontWeight: 700 }}>
-                              {Math.floor(nextPrayer.minsLeft / 60)}h{String(nextPrayer.minsLeft % 60).padStart(2,'0')}
-                            </span>
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{fr ? 'Prochaine' : 'التالية'}</div>
-                          <div style={{ fontSize: 18, color: t.ink, fontFamily: 'Fraunces, serif', fontWeight: 300, lineHeight: 1.2 }}>
-                            {fr ? nextPrayer.name : nextPrayer.nameAr}
-                          </div>
-                          <div style={{ fontSize: 11, color: t.accentBright, marginTop: 2 }}>{nextPrayer.time}</div>
-                        </div>
-                      </div>
-                    )}
-                    <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 6 }}>
-                      {prayerTimes.map(p => {
-                        const isNext = nextPrayer?.name === p.name;
-                        return (
-                          <div key={p.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 4px', borderRadius: 8, background: isNext ? `${t.accent}14` : t.cardElev, border: `1px solid ${isNext ? t.accent : t.line}` }}>
-                            <div style={{ fontSize: 9, color: isNext ? t.accent : t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>{fr ? p.name : p.nameAr}</div>
-                            <div style={{ fontSize: 11, color: isNext ? t.ink : t.inkDim, fontFamily: 'Fraunces, serif' }}>{p.time}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+  const Prayer = city ? (
+    <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={eyebrow}>{fr ? `Prochaine prière · ${city}` : `الصلاة القادمة · ${city}`}</div>
+      {prayerLoading ? <Skeleton width="60%" height={28}/> : nextPrayer ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ fontFamily: 'Fraunces, serif', fontSize: 28, color: t.ink }}>{fr ? nextPrayer.name : nextPrayer.nameAr}</span>
+            <span style={{ fontSize: 15, color: t.accent, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{nextPrayer.time}</span>
           </div>
-
-          {/* ── RIGHT COLUMN ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-            {/* Today card — ring + stats */}
-            <div style={{ ...card, padding: '20px 22px' }}>
-              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 14 }}>
-                {fr ? "Aujourd'hui" : 'اليوم'}
-              </div>
-
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                {/* Ring */}
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <Ring pct={memorizedCount / 114 * 100} size={90} stroke={5} color={t.accent}/>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontFamily: 'Fraunces, serif', fontSize: 20, color: t.accent, lineHeight: 1 }}>{memorizedCount}</div>
-                    <div style={{ fontSize: 7.5, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>{fr ? 'sour.' : 'سور'}</div>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[
-                    { icon: Icons.flame, value: streak, label: fr ? 'jours de suite' : 'يوم متواصل' },
-                    { icon: Icons.book,  value: totalVersets, label: fr ? 'versets totaux' : 'آية محفوظة' },
-                    { icon: Icons.badge, value: `${memorizedCount}/114`, label: fr ? 'sourates' : 'سورة' },
-                  ].map((s, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icon d={s.icon} size={12} color={t.accent}/>
-                      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 14, color: t.ink, fontWeight: 300 }}>{s.value}</span>
-                      <span style={{ fontSize: 10, color: t.inkDim }}>{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Progression mensuelle */}
-            <div style={{ ...card, padding: '18px 22px' }}>
-              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>
-                {fr ? 'Progression mensuelle' : 'التقدم الشهري'}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
-                <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: t.ink, fontWeight: 300 }}>{monthSessions.length}</span>
-                <span style={{ fontSize: 12, color: t.inkDim }}>/ {monthTarget} {fr ? 'sessions' : 'جلسة'}</span>
-              </div>
-              <div style={{ height: 4, background: t.lineSoft, borderRadius: 4, overflow: 'hidden' }}>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(monthSessions.length / monthTarget * 100, 100)}%` }}
-                  transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-                  style={{ height: '100%', background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`, borderRadius: 4 }}
-                />
-              </div>
-            </div>
-
-            {/* Prochaine étape */}
-            {(() => {
-              const nextSurah = userData.surahs.find(s => s.status === 'not_started');
-              if (!nextSurah) return null;
+          <div style={{ fontSize: 13, color: t.inkMute }}>
+            {fr ? 'dans ' : 'بعد '}{Math.floor(nextPrayer.minsLeft / 60) > 0 ? `${Math.floor(nextPrayer.minsLeft / 60)} h ` : ''}{nextPrayer.minsLeft % 60} min
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 4, marginTop: 4 }}>
+            {prayerTimes.map(p => {
+              const on = p.name === nextPrayer.name;
               return (
-                <div style={{ ...card, padding: '16px 20px' }}>
-                  <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>
-                    {fr ? 'Prochaine étape' : 'الخطوة التالية'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: `${t.accent}14`, border: `1px solid ${t.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 13, color: t.accent }}>{nextSurah.id}</span>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextSurah.name}</div>
-                      <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 13, color: t.accentBright }}>{nextSurah.arabicName}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-                      {[1,2,3,4,5].map(star => (
-                        <span key={star} style={{ fontSize: 8, color: star <= nextSurah.difficulty ? t.accent : `${t.inkMute}40` }}>★</span>
-                      ))}
-                    </div>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02, transition: { duration: 0.12 } }}
-                    onClick={() => onNavigate?.('memorization')}
-                    style={{ width: '100%', marginTop: 12, padding: '8px 0', borderRadius: 7, background: `${t.accent}18`, border: `1px solid ${t.accent}33`, color: t.accent, fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', cursor: 'pointer' }}>
-                    {fr ? 'Commencer' : 'ابدأ'}
-                  </motion.button>
+                <div key={p.name} style={{ textAlign: 'center', padding: '6px 0', borderRadius: 10, background: on ? `${t.accent}18` : 'transparent' }}>
+                  <div style={{ fontSize: 11, color: on ? t.accent : t.inkMute, fontWeight: on ? 600 : 400 }}>{fr ? p.name : p.nameAr}</div>
+                  <div style={{ fontSize: 12, color: t.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{p.time}</div>
                 </div>
               );
-            })()}
-
-            {/* Révisions du jour */}
-            <div style={{ ...card, padding: '18px 22px', flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-                  {fr ? 'Révisions du jour' : 'مراجعات اليوم'}
-                </div>
-                <div style={{ padding: '2px 8px', borderRadius: 10, background: t.cardElev, fontSize: 10, color: t.inkDim }}>{reviewSurahs.length}</div>
-              </div>
-
-              {reviewSurahs.length === 0 ? (
-                <div style={{ fontSize: 12, color: t.inkMute, textAlign: 'center', padding: '20px 0', fontFamily: 'Fraunces, serif', fontStyle: 'italic' }}>
-                  {fr ? 'Aucune révision prévue' : 'لا مراجعات اليوم'}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {reviewSurahs.map((s, i) => (
-                    <motion.div
-                      key={s.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.07, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}` }}
-                    >
-                      <div style={{ width: 24, height: 24, borderRadius: 6, background: `${t.accent}18`, border: `1px solid ${t.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontFamily: 'Fraunces, serif', fontSize: 10, color: t.accent }}>{i + 1}</span>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 12, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
-                          <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 13, color: t.accentBright, flexShrink: 0, marginLeft: 8 }}>{s.arabicName}</span>
-                        </div>
-                        <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 2 }}>{s.verses} {fr ? 'versets' : 'آية'}</div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-
+            })}
           </div>
+        </>
+      ) : <div style={{ fontSize: 14, color: t.inkDim }}>{fr ? 'Horaires indisponibles pour le moment.' : 'المواقيت غير متاحة حالياً.'}</div>}
+    </div>
+  ) : (
+    <button onClick={() => onNavigate?.('settings')}
+      style={{ ...card, padding: 20, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: fr ? 'left' : 'right', color: t.ink }}>
+      <span style={{ width: 40, height: 40, borderRadius: 12, background: `${t.accent}16`, color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon d={Icons.moon} size={18}/></span>
+      <span style={{ flex: 1 }}>
+        <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>{fr ? 'Horaires de prière' : 'مواقيت الصلاة'}</span>
+        <span style={{ display: 'block', fontSize: 13, color: t.inkMute, marginTop: 2 }}>{fr ? 'Ajoute ta ville dans les réglages pour les afficher ici.' : 'أضف مدينتك في الإعدادات.'}</span>
+      </span>
+    </button>
+  );
+
+  const Week = (
+    <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={eyebrow}>{fr ? 'Ta semaine' : 'أسبوعك'}</span>
+        <button onClick={() => onNavigate?.('calendar')} style={{ background: 'none', border: 'none', color: t.accent, fontSize: 13, cursor: 'pointer', padding: 0 }}>{fr ? 'Calendrier' : 'التقويم'}</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
+        {week.map((d, i) => (
+          <div key={d.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, color: d.today ? t.accent : t.inkMute, fontWeight: d.today ? 600 : 400, textTransform: 'uppercase' }}>{d.label}</span>
+            <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15 + i * 0.04, type: 'spring', stiffness: 260, damping: 18 }}
+              title={`${d.prayers}/5`}
+              style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: d.prayers >= 5 ? t.accent : d.prayers > 0 ? `${t.accent}26` : 'transparent',
+                border: `1.5px ${d.prayers ? 'solid' : 'dashed'} ${d.prayers ? t.accent : t.line}`,
+                outline: d.today ? `2px solid ${t.accent}40` : 'none', outlineOffset: 2 }}>
+              {d.prayers >= 5 ? <Icon d={Icons.check} size={14} stroke={2.6} color="#1a0f00"/> : d.prayers > 0 ? <span style={{ fontSize: 11, color: t.accent, fontWeight: 600 }}>{d.prayers}</span> : null}
+            </motion.span>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: t.inkMute }}>{fr ? 'Prières notées chaque jour' : 'الصلوات المسجلة كل يوم'}</div>
+    </div>
+  );
+
+  const VerseCard = (
+    <button onClick={() => setShowTr(v => !v)} aria-expanded={showTr}
+      style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer', textAlign: fr ? 'left' : 'right', color: t.ink }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <span style={eyebrow}>{fr ? 'Verset du jour' : 'آية اليوم'}</span>
+        <span style={{ fontSize: 12, color: t.accent }}>{verse?.ref}</span>
+      </div>
+      {verse ? (
+        <>
+          <p lang="ar" style={{ margin: 0, fontFamily: "'Amiri Quran', Amiri, serif", fontSize: isMobile ? 24 : 28, lineHeight: 2, direction: 'rtl', textAlign: 'right' }}>{verse.ar}</p>
+          <AnimatePresence initial={false}>
+            {showTr
+              ? <motion.p key="tr" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                  style={{ margin: 0, fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 16, color: t.inkDim, lineHeight: 1.5, overflow: 'hidden' }}>{verse.fr}</motion.p>
+              : <motion.span key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ fontSize: 12, color: t.inkMute }}>{fr ? 'Touche pour la traduction' : 'انقر للترجمة'}</motion.span>}
+          </AnimatePresence>
+        </>
+      ) : <Skeleton width="80%" height={28}/>}
+    </button>
+  );
+
+  return (
+    <div style={{ height: '100%', overflowY: 'auto', direction: fr ? 'ltr' : 'rtl' }} className="no-scrollbar">
+      <div style={{ padding: isMobile ? '18px 14px 100px' : narrow ? '18px 16px 24px' : '28px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1180, margin: '0 auto' }}>
+
+        {/* ── En-tête ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...eyebrow, display: 'flex', flexWrap: 'wrap', gap: '0 8px' }}>
+              <span>{dateStr}</span>{hijri && <span style={{ color: t.accent }}>· {hijri}</span>}
+            </div>
+            <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 360, fontSize: isMobile ? 30 : 38, margin: '8px 0 0', color: t.ink, letterSpacing: '-0.015em', lineHeight: 1.1 }}>
+              {fr ? 'As-salâmu ʿalaykum, ' : 'السلام عليكم، '}<span style={{ color: t.accent, fontStyle: 'italic' }}>{username}</span>
+            </h1>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.6 }}
+              style={{ margin: '10px 0 0', fontSize: 15, color: t.inkDim, lineHeight: 1.5, maxWidth: 560 }}>{message}</motion.p>
+          </div>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => onNavigate?.('settings')} aria-label={fr ? 'Réglages' : 'الإعدادات'}
+            style={{ width: 44, height: 44, borderRadius: 14, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 19, color: '#1a0f00', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+            {username.charAt(0).toUpperCase()}
+          </motion.button>
         </div>
+
+        {narrow ? (
+          <>
+            {Session}
+            {Stats}
+            {Prayer}
+            {Week}
+            {VerseCard}
+          </>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)', gap: 18, alignItems: 'start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {Session}
+              {VerseCard}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {Stats}
+              {Prayer}
+              {Week}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

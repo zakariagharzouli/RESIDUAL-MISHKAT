@@ -116,6 +116,8 @@ export interface UserData {
   lastLoginDate?: string;
   loginStreak: number;
   joursBlancs?: Record<string, { 13: boolean; 14: boolean; 15: boolean }>;
+  // Étapes cochées dans « Ta séance du jour » (remise à zéro chaque jour)
+  dailySession?: { date: string; done: string[]; total?: number };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -170,7 +172,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
   {
     id: 'fifty_surahs',
     icon: 'Crown',
-    title: 'Half Hafiz',
+    title: 'Cinquante sourates',
     titleAr: 'نصف الحافظ',
     description: 'Mémorisez 50 sourates',
     descriptionAr: 'احفظ 50 سورة',
@@ -308,7 +310,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
   {
     id: 'tasbih_100',
     icon: 'Sparkles',
-    title: 'Dhikr Master',
+    title: 'Cent dhikr d\'affilée',
     titleAr: 'سيد الذكر',
     description: 'Faites 100 tasbih en une session',
     descriptionAr: 'أكمل 100 تسبيحة في جلسة',

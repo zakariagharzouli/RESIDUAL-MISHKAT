@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+import { cheerFor } from './lib/encouragements';
+import { WhatsNew, WHATS_NEW_KEY } from './components/WhatsNew';
 import { ThemeContext, THEMES, DARK_THEMES, Theme } from './lib/theme';
 import { OfflineBanner } from './components/OfflineBanner';
 import { AppSidebar, LanternMark, useIsMobile } from './components/ui';
@@ -37,6 +39,8 @@ const mapTheme = (old?: string): string => {
   return 'gold';
 };
 
+const whatsNewSeen = () => { try { return !!localStorage.getItem(WHATS_NEW_KEY); } catch { return true; } };
+
 export default function App() {
   const [activeTab, setActiveTab]   = useState('dashboard');
   const [lang, setLang]             = useState<'fr' | 'ar'>('fr');
@@ -52,6 +56,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTrialPopup, setShowTrialPopup] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   const isDark = userData?.settings?.darkMode ?? false;
   const themeMap = isDark ? DARK_THEMES : THEMES;
@@ -69,10 +74,22 @@ export default function App() {
     }
   }, [supabaseUserId]);
 
+  // Mots de soutien après les actions importantes (un toast à la fois, jamais en rafale)
+  const langRef = useRef(lang);
+  useEffect(() => { langRef.current = lang; }, [lang]);
+  const lastCheerRef = useRef(0);
+  const cheer = (prev: UserData, next: UserData) => {
+    const msg = cheerFor(prev, next, langRef.current);
+    if (!msg || Date.now() - lastCheerRef.current < 6000) return;
+    lastCheerRef.current = Date.now();
+    setTimeout(() => toast(msg, { id: msg, duration: 4200, icon: <LanternMark size={20}/> }), 0);
+  };
+
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
       if (!prev) return prev;
       const next = typeof updater === 'function' ? updater(prev) : updater;
+      cheer(prev, next);
       const { newBadges } = checkAndUnlockBadges(next);
       if (newBadges.length > 0) {
         const updated = { ...next, badges: [...next.badges, ...newBadges] };
@@ -123,6 +140,7 @@ export default function App() {
               if (typeof cloudData.loginStreak !== 'number') cloudData.loginStreak = 1;
               cloudData.settings = { ...cloudData.settings, isAdmin: isAdminEmail(session.user.email) };
               setUserData(cloudData);
+              if (!whatsNewSeen()) setShowWhatsNew(true);
               if (cloudData.settings?.showSplashOnLogin !== false) setShowSplash(true);
               return;
             }
@@ -197,6 +215,7 @@ export default function App() {
           const { newBadges } = checkAndUnlockBadges(parsed);
           if (newBadges.length > 0) parsed.badges = [...parsed.badges, ...newBadges];
           setUserData(parsed);
+          if (!whatsNewSeen()) setShowWhatsNew(true);
         } else {
           const initial: UserData = {
             surahs: generateAllSurahs(), diftarPages: [],
@@ -211,6 +230,7 @@ export default function App() {
           initial.badges = checkAndUnlockBadges(initial).newBadges;
           setUserData(initial);
           setShowOnboarding(true);
+          try { localStorage.setItem(WHATS_NEW_KEY, '1'); } catch { /* stockage indisponible */ }
         }
       } catch {
         const today = new Date().toISOString().split('T')[0];
@@ -391,9 +411,10 @@ export default function App() {
     <ThemeContext.Provider value={t}>
       <OfflineBanner lang={lang} />
       <Toaster
+        containerStyle={{ bottom: isMobile ? 92 : 28 }}
         position="bottom-center"
         toastOptions={{
-          style: { background: t.card, color: t.ink, border: `1px solid ${t.line}`, fontFamily: 'Inter, sans-serif', fontSize: 13, borderRadius: 10 },
+          style: { background: t.card, color: t.ink, border: `1px solid ${t.line}`, fontFamily: 'Inter, sans-serif', fontSize: 14, lineHeight: 1.45, borderRadius: 14, padding: '12px 16px', maxWidth: 420, boxShadow: '0 12px 32px -12px rgba(30,20,4,0.3)' },
           success: { iconTheme: { primary: t.accent, secondary: t.card } },
           error:   { iconTheme: { primary: '#ef4444', secondary: t.card } },
           duration: 2500,
@@ -500,6 +521,16 @@ export default function App() {
       {/* Célébration des trophées, visible depuis n'importe quel écran */}
       {newlyUnlocked.length > 0 && (
         <TrophyUnlockOverlay badges={newlyUnlocked} lang={lang} onDone={() => setNewlyUnlocked([])}/>
+      )}
+
+      {/* Annonce de mise à jour, une fois par utilisateur */}
+      {showWhatsNew && !showOnboarding && newlyUnlocked.length === 0 && (
+        <WhatsNew name={userData.settings?.username || 'Hafiz'} lang={lang}
+          onClose={(goTo) => {
+            try { localStorage.setItem(WHATS_NEW_KEY, '1'); } catch { /* stockage indisponible */ }
+            setShowWhatsNew(false);
+            if (goTo) setActiveTab(goTo);
+          }}/>
       )}
 
       {/* Onboarding modal */}
