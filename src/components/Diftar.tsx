@@ -902,6 +902,22 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
     // Palm rejection MUST be first — before any pointer tracking
     if (stylusModeRef.current && e.pointerType === 'touch') return;
 
+    if (e.pointerType === 'touch') {
+      touchPtsRef.current.set(e.pointerId, e.clientY);
+      if (touchPtsRef.current.size >= 2) {
+        // Le deuxième doigt annule le début de trait du premier et passe en défilement
+        if (isDrawingRef.current) {
+          isDrawingRef.current = false; activeStrokeRef.current = null; setIsDrawing(false);
+          setUndoStack(prev => prev.slice(0, -1));
+          requestAnimationFrame(() => redrawCanvas());
+        }
+        panningRef.current = true;
+        lastPanYRef.current = avgTouchY();
+        return;
+      }
+      if (panningRef.current) return;
+    }
+
     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
     if (activeEmojiRef.current) {
       const { x, y } = getCoords(e);
@@ -967,9 +983,26 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
 
   const drawFrameRef = useRef<number>(undefined);
 
+  // Deux doigts sur la page = faire défiler, même en mode dessin (stylets passifs vus comme des doigts)
+  const touchPtsRef = useRef(new Map<number, number>());
+  const panningRef = useRef(false);
+  const lastPanYRef = useRef(0);
+  const avgTouchY = () => { let s = 0; touchPtsRef.current.forEach(y => { s += y; }); return s / Math.max(1, touchPtsRef.current.size); };
+
   const draw = (e: React.PointerEvent) => {
     // Palm rejection MUST be first
     if (stylusModeRef.current && e.pointerType === 'touch') return;
+
+    if (e.pointerType === 'touch' && touchPtsRef.current.has(e.pointerId)) {
+      touchPtsRef.current.set(e.pointerId, e.clientY);
+      if (panningRef.current) {
+        const y = avgTouchY();
+        const sc = scrollContainerRef.current;
+        if (sc) sc.scrollTo({ top: sc.scrollTop - (y - lastPanYRef.current), behavior: 'instant' as ScrollBehavior });
+        lastPanYRef.current = y;
+        return;
+      }
+    }
 
     // Select tool: move the dragged shape
     if (tool === 'select') {
@@ -1024,6 +1057,14 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
 
   const stopDrawing = (e?: React.PointerEvent) => {
     if (e && stylusModeRef.current && e.pointerType === 'touch') return;
+    if (e && e.pointerType === 'touch') {
+      touchPtsRef.current.delete(e.pointerId);
+      if (panningRef.current) {
+        if (touchPtsRef.current.size === 0) panningRef.current = false;
+        else lastPanYRef.current = avgTouchY();
+        return;
+      }
+    }
     if (tool === 'select') { selectionDragRef.current = null; return; }
     if (!isDrawingRef.current || !activeStrokeRef.current) { isDrawingRef.current = false; setIsDrawing(false); return; }
     isDrawingRef.current = false; setIsDrawing(false);
@@ -2227,7 +2268,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '👆', text: lang === 'fr' ? 'Faites glisser un doigt sur le fond pour scroller naturellement (swipe)' : 'اسحب بإصبع واحد على الخلفية للتحريك الطبيعي (swipe)' },
+                    { icon: '👆', text: lang === 'fr' ? 'Glissez avec deux doigts pour faire défiler la page, même quand le stylo est actif' : 'اسحب بإصبعين لتحريك الصفحة حتى أثناء الكتابة' },
                     { icon: '🖱', text: lang === 'fr' ? 'Utilisez la roulette de la souris pour un défilement classique' : 'استخدم عجلة الماوس للتحريك التقليدي' },
                     { icon: '🖊', text: lang === 'fr' ? 'Mode Stylet : vos doigts font scroller, seul le stylet dessine (détection automatique)' : 'وضع القلم: أصابعك تقوم بالتحريك فقط، ويرسم القلم فقط (اكتشاف تلقائي)' },
                   ].map((row, i) => (
