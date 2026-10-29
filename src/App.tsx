@@ -29,7 +29,7 @@ import localforage from 'localforage';
 import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
 import { checkAndUnlockBadges } from './lib/badgeEngine';
 import { TrophyUnlockOverlay } from './components/Trophy';
-import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
+import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail, withTimeout, TIMED_OUT, cachedSessionUser } from './lib/supabase';
 import { AuthScreen, REMEMBER_KEY, SESSION_ALIVE_KEY } from './components/Auth';
 import { WelcomeSplash } from './components/WelcomeSplash';
 import { OnboardingModal } from './components/Onboarding';
@@ -44,6 +44,17 @@ const mapTheme = (old?: string): string => {
 };
 
 const whatsNewSeen = () => { try { return !!localStorage.getItem(WHATS_NEW_KEY); } catch { return true; } };
+
+/** Message rassurant si l'ouverture tarde (réseau lent) : l'app s'ouvre de toute façon en quelques secondes. */
+const SlowHint = ({ dark }: { dark: boolean }) => {
+  const [show, setShow] = useState(false);
+  useEffect(() => { const id = setTimeout(() => setShow(true), 3500); return () => clearTimeout(id); }, []);
+  return (
+    <div style={{ minHeight: 20, fontSize: 14, fontFamily: 'Inter, sans-serif', color: dark ? '#b9a988' : '#8a7550', opacity: show ? 1 : 0, transition: 'opacity .6s', textAlign: 'center', padding: '0 24px' }}>
+      Connexion lente… Mishkat s'ouvre dans un instant.
+    </div>
+  );
+};
 
 export default function App() {
   const [activeTab, setActiveTab]   = useState('dashboard');
@@ -71,6 +82,9 @@ export default function App() {
 
   const userDataRef = useRef(userData);
   const supaDirtyRef = useRef(false);
+  // Données du cloud pas encore reçues (réseau lent) : on n'écrase pas le cloud tant qu'elle n'a rien modifié
+  const cloudPendingRef = useRef(false);
+  const userTouchedRef = useRef(false);
   useEffect(() => { userDataRef.current = userData; }, [userData]);
 
   const saveNow = useCallback((dataToSave: UserData) => {
@@ -93,6 +107,7 @@ export default function App() {
   };
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
+    userTouchedRef.current = true;
     setUserData(prev => {
       if (!prev) return prev;
       let next = typeof updater === 'function' ? updater(prev) : updater;
@@ -119,14 +134,16 @@ export default function App() {
 
   // ── Auth state listener ──────────────────────────────────────────────────
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Au-delà de 5 s sans réponse, on se fie à la session enregistrée sur l'appareil
+    withTimeout(supabase.auth.getSession(), 5000).then(r => {
+      const session = r === TIMED_OUT ? (cachedSessionUser() ? { user: cachedSessionUser()! } : null) : r.data.session;
       if (session?.user) {
         // "Remember me" enforcement: if user logged in without remember-me,
         // the session must not survive a browser restart (sessionStorage is cleared on restart).
         const hasRemember  = !!localStorage.getItem(REMEMBER_KEY);
         const hasAliveFlag = !!sessionStorage.getItem(SESSION_ALIVE_KEY);
         if (!hasRemember && !hasAliveFlag) {
-          supabase.auth.signOut().then(() => { setShowAuth(true); setAuthChecked(true); });
+          withTimeout(supabase.auth.signOut(), 3000).then(() => { setShowAuth(true); setAuthChecked(true); });
           return;
         }
         setSupabaseUserId(session.user.id);
@@ -143,8 +160,8 @@ export default function App() {
         setShowAuth(false);
         if (_event === 'SIGNED_IN') {
           try {
-            let cloudData = await migrateLocalToSupabase(session.user.id);
-            if (!cloudData) cloudData = await loadUserData(session.user.id);
+            const got = await withTimeout((async () => (await migrateLocalToSupabase(session.user.id)) ?? (await loadUserData(session.user.id)))(), 8000);
+            const cloudData = got === TIMED_OUT ? null : got;
             if (cloudData) {
               if (!cloudData.surahs || !Array.isArray(cloudData.surahs)) cloudData.surahs = generateAllSurahs();
               if (!cloudData.diftarPages) cloudData.diftarPages = [];
@@ -178,14 +195,66 @@ export default function App() {
 
   // ── Load data ────────────────────────────────────────────────────────────
   useEffect(() => {
+    let session: { user: { id: string; email?: string } } | null = null;
+    // Complète et met à niveau des données chargées (appareil ou cloud)
+    const prepare = (parsed: UserData): UserData => {
+      const today = new Date().toISOString().split('T')[0];
+      if (!parsed.surahs || !Array.isArray(parsed.surahs)) parsed.surahs = generateAllSurahs();
+      if (!parsed.diftarPages || !Array.isArray(parsed.diftarPages)) parsed.diftarPages = [];
+      if (!parsed.goals || !Array.isArray(parsed.goals)) parsed.goals = [];
+      if (!parsed.badges || !Array.isArray(parsed.badges)) parsed.badges = [];
+      if (!parsed.calendar || !Array.isArray(parsed.calendar)) parsed.calendar = [];
+      if (!parsed.settings) parsed.settings = { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
+      if (typeof parsed.tasbihCount !== 'number') parsed.tasbihCount = 0;
+      if (typeof parsed.loginStreak !== 'number') parsed.loginStreak = 1;
+      if (typeof parsed.tasbihSessionBest !== 'number') parsed.tasbihSessionBest = 0;
+      if (typeof parsed.onboarded !== 'boolean') parsed.onboarded = false;
+
+      if (parsed.surahs && parsed.surahs[0]?.name === 'Surah 1') {
+        const freshSurahs = generateAllSurahs();
+        parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
+          ...fresh,
+          status: parsed!.surahs[i]?.status || 'not_started',
+          color: parsed!.surahs[i]?.color,
+        }));
+      }
+      if (parsed.lastLoginDate !== today) {
+        const { newStreak } = checkLoginStreak(parsed);
+        parsed.loginStreak = newStreak;
+        parsed.lastLoginDate = today;
+      }
+      if (!parsed.settings.settingsVersion) {
+        parsed.settings.settingsVersion = 1;
+      }
+      if (session?.user) {
+        parsed.settings = { ...parsed.settings, isAdmin: isAdminEmail(session.user.email) };
+      }
+      const { newBadges } = checkAndUnlockBadges(parsed);
+      if (newBadges.length > 0) parsed.badges = [...parsed.badges, ...newBadges];
+      return parsed;
+    };
     const load = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const sr = await withTimeout(supabase.auth.getSession(), 5000);
+        const cached = cachedSessionUser();
+        session = sr === TIMED_OUT ? (cached ? { user: cached } : null) : sr.data.session;
         let parsed: UserData | null = null;
 
+        let cloudLate: Promise<UserData | null> | null = null;
         if (session?.user) {
-          parsed = await migrateLocalToSupabase(session.user.id);
-          if (!parsed) parsed = await loadUserData(session.user.id);
+          const uid = session.user.id;
+          // Le cloud a 6 s pour répondre ; sinon on ouvre avec les données de l'appareil
+          const cloud = (async () => (await migrateLocalToSupabase(uid)) ?? (await loadUserData(uid)))();
+          const got = await withTimeout(cloud, 6000);
+          if (got === TIMED_OUT) {
+            cloudPendingRef.current = true;
+            cloudLate = cloud;
+            cloud.then(late => {
+              cloudPendingRef.current = false;
+              // Arrivé en retard : on ne l'applique que si rien n'a été modifié entre-temps
+              if (late && !userTouchedRef.current) { setUserData(prepare(late)); setShowOnboarding(false); }
+            }, () => { cloudPendingRef.current = false; });
+          } else parsed = got;
         }
         if (!parsed) {
           parsed = await localforage.getItem<UserData>('mishkat_user_data');
@@ -193,43 +262,14 @@ export default function App() {
             const lsRaw = localStorage.getItem('mishkat_user_data');
             if (lsRaw) { try { parsed = JSON.parse(lsRaw); } catch {} }
           }
+          // Rien sur l'appareil : on attend le cloud (jamais plus de 30 s par requête) plutôt que repartir de zéro
+          if (!parsed && cloudLate) { parsed = await cloudLate.catch(() => null); cloudPendingRef.current = false; }
         }
 
         const today = new Date().toISOString().split('T')[0];
 
         if (parsed) {
-          if (!parsed.surahs || !Array.isArray(parsed.surahs)) parsed.surahs = generateAllSurahs();
-          if (!parsed.diftarPages || !Array.isArray(parsed.diftarPages)) parsed.diftarPages = [];
-          if (!parsed.goals || !Array.isArray(parsed.goals)) parsed.goals = [];
-          if (!parsed.badges || !Array.isArray(parsed.badges)) parsed.badges = [];
-          if (!parsed.calendar || !Array.isArray(parsed.calendar)) parsed.calendar = [];
-          if (!parsed.settings) parsed.settings = { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
-          if (typeof parsed.tasbihCount !== 'number') parsed.tasbihCount = 0;
-          if (typeof parsed.loginStreak !== 'number') parsed.loginStreak = 1;
-          if (typeof parsed.tasbihSessionBest !== 'number') parsed.tasbihSessionBest = 0;
-          if (typeof parsed.onboarded !== 'boolean') parsed.onboarded = false;
-
-          if (parsed.surahs && parsed.surahs[0]?.name === 'Surah 1') {
-            const freshSurahs = generateAllSurahs();
-            parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
-              ...fresh,
-              status: parsed!.surahs[i]?.status || 'not_started',
-              color: parsed!.surahs[i]?.color,
-            }));
-          }
-          if (parsed.lastLoginDate !== today) {
-            const { newStreak } = checkLoginStreak(parsed);
-            parsed.loginStreak = newStreak;
-            parsed.lastLoginDate = today;
-          }
-          if (!parsed.settings.settingsVersion) {
-            parsed.settings.settingsVersion = 1;
-          }
-          if (session?.user) {
-            parsed.settings = { ...parsed.settings, isAdmin: isAdminEmail(session.user.email) };
-          }
-          const { newBadges } = checkAndUnlockBadges(parsed);
-          if (newBadges.length > 0) parsed.badges = [...parsed.badges, ...newBadges];
+          parsed = prepare(parsed);
           setUserData(parsed);
           if (!whatsNewSeen()) setShowWhatsNew(true);
         } else {
@@ -274,6 +314,7 @@ export default function App() {
     const sec = userData?.settings?.autoSaveInterval ?? 60;
     if (sec === 0) return; // sauvegarde manuelle uniquement
     const id = setInterval(() => {
+      if (cloudPendingRef.current && !userTouchedRef.current) return;
       if (supaDirtyRef.current && userDataRef.current) {
         saveUserData(supabaseUserId, userDataRef.current).catch(() => {});
         supaDirtyRef.current = false;
@@ -405,8 +446,9 @@ export default function App() {
   // ── Auth screen ──────────────────────────────────────────────────────────
   if (!authChecked && !localOnly) {
     return (
-      <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', justifyContent: 'center' }}>
         <img src="/icon-192.png" alt="Mishkat" width={72} height={72} style={{ borderRadius: 20, animation: 'mk-breathe 1.8s ease-in-out infinite' }}/>
+        <SlowHint dark={isDark}/>
       </div>
     );
   }
@@ -425,8 +467,9 @@ export default function App() {
 
   if (!userData) {
     return (
-      <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', justifyContent: 'center' }}>
         <img src="/icon-192.png" alt="Mishkat" width={72} height={72} style={{ borderRadius: 20, animation: 'mk-breathe 1.8s ease-in-out infinite' }}/>
+        <SlowHint dark={isDark}/>
       </div>
     );
   }

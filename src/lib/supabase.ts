@@ -5,7 +5,39 @@ import { UserData } from '../types';
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  as string;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+// Aucune requête ne doit rester suspendue indéfiniment (réseau de la tablette très lent ou coupé)
+const REQUEST_TIMEOUT_MS = 30000;
+const fetchWithTimeout: typeof fetch = (input, init) => {
+  if (init?.signal) return fetch(input, init);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+};
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, { global: { fetch: fetchWithTimeout } });
+
+export const TIMED_OUT = Symbol('timeout');
+/** Résout avec TIMED_OUT si la promesse met plus de `ms` (la promesse continue en arrière-plan). */
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => resolve(TIMED_OUT), ms);
+    p.then(v => { clearTimeout(timer); resolve(v); }, () => { clearTimeout(timer); resolve(TIMED_OUT); });
+  });
+}
+
+/** Utilisateur de la session enregistrée sur l'appareil, lu sans passer par le réseau. */
+export function cachedSessionUser(): { id: string; email?: string } | null {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && /^sb-.+-auth-token$/.test(k)) {
+        const u = JSON.parse(localStorage.getItem(k) || 'null')?.user;
+        if (u?.id) return { id: u.id, email: u.email };
+      }
+    }
+  } catch { /* stockage illisible */ }
+  return null;
+}
 
 export interface QuranVerse {
   id: number;
