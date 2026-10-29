@@ -1,4 +1,4 @@
-import type { UserData } from '../types';
+import type { PlantedFlower, UserData } from '../types';
 
 // ── Collection de fleurs : une fleur offerte chaque jour, plus rare avec la régularité ──
 export type FlowerRarity = 'commune' | 'rare' | 'precieuse' | 'legendaire';
@@ -92,4 +92,24 @@ export function addFlower(d: UserData, f: FlowerDef, reason: 'jour' | 'sourate')
       history: [{ id: f.id, date: day, reason }, ...(prev.history ?? [])].slice(0, 60),
     },
   };
+}
+
+/** Fleurs encore dans le panier : reçues mais pas encore plantées. */
+export function basket(d: UserData): { f: FlowerDef; n: number }[] {
+  const got = d.flowers?.got ?? {};
+  const planted = d.flowers?.planted ?? [];
+  return FLOWERS.map(f => ({ f, n: (got[f.id] ?? 0) - planted.filter(p => p.id === f.id).length })).filter(x => x.n > 0);
+}
+
+/** Plante une fleur du panier à l'endroit touché. */
+export function plantFlower(d: UserData, id: string, x: number, y: number): UserData {
+  const prev = d.flowers ?? { got: {}, firstAt: {} };
+  const p: PlantedFlower = { key: `${id}-${Date.now().toString(36)}`, id, x: Math.round(x), y: Math.round(y), at: todayKey() };
+  return { ...d, flowers: { ...prev, planted: [...(prev.planted ?? []), p] } };
+}
+
+/** Retire une fleur du jardin : elle retourne dans le panier. */
+export function unplantFlower(d: UserData, key: string): UserData {
+  const prev = d.flowers ?? { got: {}, firstAt: {} };
+  return { ...d, flowers: { ...prev, planted: (prev.planted ?? []).filter(p => p.key !== key) } };
 }

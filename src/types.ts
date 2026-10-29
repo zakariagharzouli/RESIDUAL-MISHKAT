@@ -119,7 +119,7 @@ export interface UserData {
   // Étapes cochées dans « Ta séance du jour » (remise à zéro chaque jour)
   dailySession?: { date: string; done: string[]; total?: number };
   // Collection de fleurs offertes (lib/flowers.ts)
-  flowers?: { got: Record<string, number>; firstAt: Record<string, string>; lastGift?: string; history?: { id: string; date: string; reason: 'jour' | 'sourate' }[] };
+  flowers?: { got: Record<string, number>; firstAt: Record<string, string>; lastGift?: string; history?: { id: string; date: string; reason: 'jour' | 'sourate' }[]; planted?: PlantedFlower[] };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -777,3 +777,6 @@ export function getRarityLabel(rarity: string, lang: 'fr' | 'ar'): string {
   const m = MATERIALS[rarity as Rarity];
   return m ? m[lang] : rarity;
 }
+
+/** Fleur de la collection plantée dans le jardin (coordonnées du dessin 1000×640). */
+export interface PlantedFlower { key: string; id: string; x: number; y: number; at: string; }
