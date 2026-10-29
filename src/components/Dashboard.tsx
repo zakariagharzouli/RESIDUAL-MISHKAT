@@ -5,6 +5,7 @@ import { useT } from '../lib/theme';
 import { dailyEncouragement } from '../lib/encouragements';
 import { Icon, Icons, useIsNarrow, useIsMobile, AnimatedNumber } from './ui';
 import { Skeleton } from './Skeleton';
+import { RiveAnim } from './RiveAnim';
 import { FlowerArt } from './Flowers';
 import { FLOWERS } from '../lib/flowers';
 
@@ -339,9 +340,14 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
         <motion.button key={s.label} onClick={() => onNavigate?.(s.to)}
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05, duration: 0.4 }}
           whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
-          style={{ ...card, borderRadius: 18, padding: '14px 16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, cursor: 'pointer', textAlign: fr ? 'left' : 'right', color: t.ink,
+          style={{ ...card, position: 'relative', overflow: 'hidden', borderRadius: 18, padding: '14px 16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, cursor: 'pointer', textAlign: fr ? 'left' : 'right', color: t.ink,
             background: `linear-gradient(150deg, ${s.hue}1c, ${s.hue}08 70%), ${t.card}`, borderColor: `${s.hue}33` }}>
-          <span style={{ width: 34, height: 34, borderRadius: '50%', background: s.hue, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 14px -6px ${s.hue}` }}><Icon d={s.icon} size={17} stroke={2}/></span>
+          {(() => {
+            const badge = <span style={{ width: 34, height: 34, borderRadius: '50%', background: s.hue, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 14px -6px ${s.hue}` }}><Icon d={s.icon} size={17} stroke={2}/></span>;
+            return i === 0
+              ? <>{badge}<RiveAnim src="/rive/flamme.riv" animation="Normal" size={isMobile ? 96 : 104} style={{ position: 'absolute', top: -6, insetInlineEnd: -10, pointerEvents: 'none' }}/></>
+              : badge;
+          })()}
           <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, fontWeight: 360, lineHeight: 1 }}>
             <AnimatedNumber value={s.value}/>{s.suffix && <span style={{ fontSize: 14, color: t.inkMute }}>{s.suffix}</span>}
           </span>
