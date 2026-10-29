@@ -71,12 +71,14 @@ const PAPER_COLORS = [
   { value: '#3E2723', label: 'Moka' },
 ];
 
-const EMOJI_LIST = [
-  '👍','❤️','⭐','✨','🎉','🏆','🎯','💡','✅','💪',
-  '😊','😍','🙏','🤍','💎','📖','✍️','🌟','🔥','🎊',
-  '🌺','🌸','🌼','💐','🦋','🌿','🌈','🌙','☀️','🕊️',
-  '🤲','🕌','📿','☪️','🕋','🌹','🍃','🏵️','💚','🫶',
+const EMOJI_GROUPS: { id: string; fr: string; ar: string; list: string[] }[] = [
+  { id: 'fleurs', fr: 'Fleurs',  ar: 'زهور',   list: ['🌸','🌺','🌹','🌷','🌻','🌼','💐','🪷','🪻','🏵️','🌿','🍃','🍀','🌱','🌾','🦋'] },
+  { id: 'coeurs', fr: 'Cœurs',   ar: 'قلوب',   list: ['❤️','🧡','💛','💚','💙','💜','🤍','🤎','🩷','💕','💖','💗','🫶','🤲','🙏','😊'] },
+  { id: 'islam',  fr: 'Islam',   ar: 'إسلام',  list: ['🕌','🕋','📿','☪️','🌙','⭐','✨','🌟','💫','📖','🕊️','🤲'] },
+  { id: 'etude',  fr: 'Étude',   ar: 'دراسة',  list: ['📖','✍️','💡','✅','🎯','📌','📝','🔖','⭐','🏆','💪','👍'] },
+  { id: 'fete',   fr: 'Fête',    ar: 'احتفال', list: ['🎉','🎊','🎁','🎈','🥳','🌈','☀️','🌙','✨','💎','🔥','🏆'] },
 ];
+const EMOJI_SIZES = [{ fr: 'Petit', ar: 'صغير', v: 40 }, { fr: 'Moyen', ar: 'وسط', v: 64 }, { fr: 'Grand', ar: 'كبير', v: 100 }];
 
 // All shapes, organized by category
 const SHAPE_CATEGORIES = [
@@ -141,6 +143,23 @@ const TOOLS = [
   { id: 'brush',        fr: 'Pinceau',      ar: 'فرشاة',       hint: ''  },
 ];
 
+const PAPER_STYLES = [
+  { id: 'blank',        fr: 'Uni',           ar: 'أبيض'     },
+  { id: 'lines',        fr: 'Lignes',        ar: 'سطور'     },
+  { id: 'grid',         fr: 'Grille',        ar: 'شبكة'     },
+  { id: 'dots',         fr: 'Points',        ar: 'نقاط'     },
+  { id: 'floral',       fr: 'Floral',        ar: 'زهور'     },
+  { id: 'leaves',       fr: 'Feuilles',      ar: 'أوراق'    },
+  { id: 'islamic_star', fr: 'Étoiles',       ar: 'نجوم'     },
+  { id: 'arabesque',    fr: 'Arabesque',     ar: 'عربسك'    },
+  { id: 'waves',        fr: 'Vagues',        ar: 'أمواج'    },
+  { id: 'diamond',      fr: 'Diamant',       ar: 'ماسة'     },
+  { id: 'hexagonal',    fr: "Nid d'abeille", ar: 'خلية نحل' },
+  { id: 'crosses',      fr: 'Croix',         ar: 'صلبان'    },
+  { id: 'triangles',    fr: 'Triangles',     ar: 'مثلثات'   },
+  { id: 'music',        fr: 'Portée',        ar: 'مدرج'     },
+];
+
 const RECENT_KEY = 'diftar_recent_colors';
 const DEFAULT_RECENT = ['#1c1409', '#8B2635', '#1D3557', '#2D6A4F', '#C8962A', '#E07A9A'];
 
@@ -192,6 +211,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
   const [shapeCategory, setShapeCategory]       = useState(0);
   const [showEmojiPicker, setShowEmojiPicker]   = useState(false);
   const [showMoreMenu, setShowMoreMenu]         = useState(false);
+  const [emojiGroup, setEmojiGroup]             = useState('fleurs');
   const [viewportW, setViewportW]               = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1440));
   useEffect(() => {
     const onResize = () => setViewportW(window.innerWidth);
@@ -556,8 +576,8 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
     return () => window.clearTimeout(timer);
   }, [activePageId, lang, userData.settings.username]);
 
-  const drawPaperLines = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
-    if (paperStyle === 'blank') return;
+  const drawPaperLines = (ctx: CanvasRenderingContext2D, w: number, h: number, style: string = paperStyle) => {
+    if (style === 'blank') return;
     const lineColor = '#8B263512';
     const marginColor = '#8B263528';
 
@@ -566,18 +586,18 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 1;
 
-    if (paperStyle === 'lines' || paperStyle === 'grid') {
+    if (style === 'lines' || style === 'grid') {
       for (let y = 60; y < h; y += 32) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
     }
-    if (paperStyle === 'grid') {
+    if (style === 'grid') {
       for (let x = 0; x < w; x += 32) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
     }
-    if (paperStyle === 'dots') {
+    if (style === 'dots') {
       for (let x = 32; x < w; x += 32) {
         for (let y = 32; y < h; y += 32) { ctx.moveTo(x, y); ctx.arc(x, y, 0.7, 0, Math.PI * 2); }
       }
     }
-    if (paperStyle === 'arabesque') {
+    if (style === 'arabesque') {
       for (let y = 60; y < h; y += 32) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
       for (let y = 80; y < h; y += 96) {
         ctx.save();
@@ -591,7 +611,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         ctx.restore();
       }
     }
-    if (paperStyle === 'diamond') {
+    if (style === 'diamond') {
       // Diagonal grid (45°) — two sets of parallel lines
       const step = 32;
       for (let d = -h; d < w + h; d += step) {
@@ -599,7 +619,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         ctx.moveTo(d, 0); ctx.lineTo(d - h, h);
       }
     }
-    if (paperStyle === 'hexagonal') {
+    if (style === 'hexagonal') {
       // Honeycomb outlines
       const r = 22, hexH = r * Math.sqrt(3);
       for (let row = 0; row * hexH * 0.75 < h + r; row++) {
@@ -614,7 +634,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         }
       }
     }
-    if (paperStyle === 'music') {
+    if (style === 'music') {
       // Music staff: groups of 5 lines, 8px apart, with 28px gap between groups
       const staffGap = 8;
       const groupGap = 40;
@@ -627,7 +647,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         y += 5 * staffGap + groupGap;
       }
     }
-    if (paperStyle === 'floral') {
+    if (style === 'floral') {
       const spacing = 48;
       ctx.fillStyle = lineColor;
       for (let fy = spacing; fy < h; fy += spacing) {
@@ -641,7 +661,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         }
       }
     }
-    if (paperStyle === 'islamic_star') {
+    if (style === 'islamic_star') {
       const ss = 28, sp = 58;
       for (let fy = sp / 2; fy < h + sp; fy += sp * 0.866) {
         const offset = (Math.round(fy / (sp * 0.866)) % 2) * sp / 2;
@@ -657,7 +677,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         }
       }
     }
-    if (paperStyle === 'waves') {
+    if (style === 'waves') {
       for (let fy = 40; fy < h; fy += 28) {
         ctx.beginPath(); ctx.moveTo(0, fy);
         for (let fx = 0; fx < w; fx += 20) {
@@ -666,7 +686,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         ctx.stroke();
       }
     }
-    if (paperStyle === 'leaves') {
+    if (style === 'leaves') {
       ctx.fillStyle = lineColor;
       const lsp = 52;
       for (let fy = lsp; fy < h; fy += lsp) {
@@ -679,7 +699,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         }
       }
     }
-    if (paperStyle === 'crosses') {
+    if (style === 'crosses') {
       ctx.fillStyle = lineColor;
       const csp = 28;
       for (let fy = csp; fy < h; fy += csp) {
@@ -689,7 +709,7 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
         }
       }
     }
-    if (paperStyle === 'triangles') {
+    if (style === 'triangles') {
       const ts = 28;
       for (let row = 0; row * ts < h + ts; row++) {
         for (let col = 0; col * ts < w + ts; col++) {
@@ -1543,6 +1563,15 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
   // ──────────────────────────────────
   // CANVAS / EDITOR VIEW
   // ──────────────────────────────────
+  // Miniature d'un motif, peinte avec la même fonction que la vraie page
+  const paintPaperThumb = (el: HTMLCanvasElement | null, style: string) => {
+    const ctx = el?.getContext('2d'); if (!el || !ctx) return;
+    ctx.clearRect(0, 0, el.width, el.height);
+    ctx.fillStyle = paperColor; ctx.fillRect(0, 0, el.width, el.height);
+    // Le motif de la vraie page est très léger : on le repasse pour qu'il se voie en petit
+    try { for (let k = 0; k < 4; k++) drawPaperLines(ctx, el.width, el.height, style); } catch { /* motif non dessinable en miniature */ }
+  };
+
   const barBtn = (active: boolean): React.CSSProperties => ({
     width: 40, height: 40, borderRadius: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     background: active ? `${t.accent}22` : 'transparent', color: active ? t.accent : t.inkDim,
@@ -1649,6 +1678,19 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
             </button>
           </div>
         </div>
+
+        {/* Emoji « en main » : on peut en poser plusieurs, puis Terminé */}
+        {activeEmoji && !showEmojiPicker && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, padding: '6px 6px 6px 14px', borderRadius: 999,
+            background: t.ink, color: t.bg, boxShadow: '0 10px 24px -10px rgba(20,14,6,0.5)', fontSize: 14, zIndex: 44 }}>
+            <span style={{ fontSize: 22 }}>{activeEmoji}</span>
+            <span>{fr ? 'Touche la page pour le poser' : 'المس الصفحة لوضعه'}</span>
+            <button onClick={() => { activeEmojiRef.current = null; setActiveEmoji(null); }}
+              style={{ height: 34, padding: '0 14px', borderRadius: 999, border: 'none', background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              {fr ? 'Terminé' : 'تم'}
+            </button>
+          </div>
+        )}
 
         {/* Toucher à côté d'un menu le ferme, sans laisser de trait */}
         {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings || showMoreMenu) && (
@@ -1831,69 +1873,63 @@ export const Diftar = ({ userData, setUserData, lang, onSaveNow, onEditingChange
 
               {showEmojiPicker && (
                 <div style={panelStyle}>
-                  <div style={panelTitle}>
-                    {fr ? 'Choisir un emoji — cliquez sur la page pour placer' : 'اختر رمزاً — انقر على الصفحة للوضع'}
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }} className="no-scrollbar">
+                    {EMOJI_GROUPS.map(g => (
+                      <button key={g.id} onClick={() => setEmojiGroup(g.id)} aria-pressed={emojiGroup === g.id}
+                        style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                          ...(emojiGroup === g.id ? { background: t.ink, color: t.bg } : { background: t.bgSoft, color: t.inkDim }) }}>
+                        {g.list[0]} {fr ? g.fr : g.ar}
+                      </button>
+                    ))}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 8 }}>
-                    {EMOJI_LIST.map(em => (
-                      <button key={em} onClick={() => { activeEmojiRef.current = em; setActiveEmoji(em); setShowEmojiPicker(false); }}
-                        style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: 'none', cursor: 'pointer', transition: 'transform 0.15s',
-                          background: activeEmoji === em ? `${t.accent}1a` : 'transparent',
-                          boxShadow: activeEmoji === em ? `0 0 0 2px ${t.accent}` : 'none' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${narrow ? 6 : 8}, minmax(0, 1fr))`, gap: 6 }}>
+                    {(EMOJI_GROUPS.find(g => g.id === emojiGroup) ?? EMOJI_GROUPS[0]).list.map(em => (
+                      <button key={em} onClick={() => { activeEmojiRef.current = em; setActiveEmoji(em); setShowEmojiPicker(false); }} aria-label={em}
+                        style={{ aspectRatio: '1', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, border: 'none', cursor: 'pointer',
+                          background: activeEmoji === em ? `${t.accent}1a` : t.bgSoft, boxShadow: activeEmoji === em ? `0 0 0 2px ${t.accent}` : 'none' }}>
                         {em}
                       </button>
                     ))}
                   </div>
-                  {activeEmoji && (
-                    <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: t.accentBright }}>
-                      {activeEmoji} {fr ? '— cliquez sur la page pour placer' : '— انقر على الصفحة للوضع'}
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={panelTitle}>{fr ? 'Taille' : 'الحجم'}</span>
+                    {EMOJI_SIZES.map(z => (
+                      <button key={z.v} onClick={() => setShapeSize(z.v)} aria-pressed={shapeSize === z.v}
+                        style={{ height: 40, padding: '0 14px', borderRadius: 12, cursor: 'pointer', fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6,
+                          border: `1.5px solid ${shapeSize === z.v ? t.accent : t.lineSoft}`, background: shapeSize === z.v ? `${t.accent}14` : t.card, color: t.ink }}>
+                        <span style={{ fontSize: z.v === 40 ? 14 : z.v === 64 ? 18 : 24 }}>🌸</span>{fr ? z.fr : z.ar}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {showPaperSettings && (
                 <div style={panelStyle}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={panelTitle}>{fr ? 'Style de papier' : 'نوع الورق'}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {[
-                        { id: 'blank',        label: fr ? 'Blanc'        : 'أبيض'     },
-                        { id: 'lines',        label: fr ? 'Lignes'       : 'سطور'     },
-                        { id: 'grid',         label: fr ? 'Grille'       : 'شبكة'     },
-                        { id: 'dots',         label: fr ? 'Points'       : 'نقاط'     },
-                        { id: 'arabesque',    label: fr ? 'Arabesque'    : 'عربسك'    },
-                        { id: 'diamond',      label: fr ? 'Diamant'      : 'ماسة'     },
-                        { id: 'hexagonal',    label: fr ? "Nid d'abeille": 'خلية نحل' },
-                        { id: 'music',        label: fr ? 'Portée'       : 'موسيقى'   },
-                        { id: 'floral',       label: fr ? '🌸 Floral'    : '🌸 زهور'  },
-                        { id: 'islamic_star', label: fr ? '✦ Islamique'  : '✦ إسلامي'},
-                        { id: 'waves',        label: fr ? '〰 Vagues'    : '〰 أمواج' },
-                        { id: 'leaves',       label: fr ? '🍃 Feuilles'  : '🍃 أوراق' },
-                        { id: 'crosses',      label: fr ? '+ Croix'      : '+ صلبان'  },
-                        { id: 'triangles',    label: fr ? '△ Triangles'  : '△ مثلثات'},
-                      ].map(s => (
-                        <button key={s.id} onClick={() => { setPaperStyle(s.id as any); setShowPaperSettings(false); }}
-                          style={{ padding: '8px 16px', borderRadius: 16, border: `1px solid`, cursor: 'pointer', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em',
-                            ...(paperStyle === s.id ? { background: t.accent, color: '#fff', borderColor: t.accent } : { background: `${t.accent}0d`, color: t.inkMute, borderColor: 'transparent' }) }}>
-                          {s.label}
+                  <div style={panelTitle}>{fr ? 'Motif du papier' : 'نوع الورق'}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${narrow ? 3 : 5}, minmax(0, 1fr))`, gap: 10 }}>
+                    {PAPER_STYLES.map(ps => {
+                      const on = paperStyle === ps.id;
+                      return (
+                        <button key={ps.id} onClick={() => setPaperStyle(ps.id as any)} aria-pressed={on}
+                          style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: on ? t.ink : t.inkDim }}>
+                          <canvas width={240} height={160} ref={el => paintPaperThumb(el, ps.id)} aria-hidden="true"
+                            style={{ width: '100%', aspectRatio: '3 / 2', borderRadius: 12, border: `1.5px solid ${on ? t.accent : t.lineSoft}`, boxShadow: on ? `0 0 0 3px ${t.accent}33` : 'none' }}/>
+                          <span style={{ fontSize: 13, fontWeight: on ? 600 : 500 }}>{fr ? ps.fr : ps.ar}</span>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={panelTitle}>{fr ? 'Couleur de papier' : 'لون الورق'}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {PAPER_COLORS.map(pc => (
-                        <button key={pc.value} onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, border: `1px solid`, cursor: 'pointer', fontSize: 10, fontWeight: 700, background: pc.value,
-                            borderColor: paperColor === pc.value ? t.accent : 'rgba(139,38,53,0.15)',
-                            color: readableOn(pc.value),
-                            boxShadow: paperColor === pc.value ? `0 0 0 2px ${t.accent}` : 'none' }}>
-                          {pc.label}
-                        </button>
-                      ))}
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={panelTitle}>{fr ? 'Couleur du papier' : 'لون الورق'}</span>
+                    <span style={{ fontSize: 13, color: t.inkDim }}>{PAPER_COLORS.find(pc => pc.value === paperColor)?.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                    {PAPER_COLORS.map(pc => (
+                      <button key={pc.value} onClick={() => setPaperColor(pc.value)} aria-label={pc.label} title={pc.label} aria-pressed={paperColor === pc.value}
+                        style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer', background: pc.value,
+                          boxShadow: paperColor === pc.value ? `0 0 0 2px ${t.card}, 0 0 0 4px ${t.accent}` : 'inset 0 0 0 1px rgba(0,0,0,0.12)' }}/>
+                    ))}
                   </div>
                 </div>
               )}
