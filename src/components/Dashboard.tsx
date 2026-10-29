@@ -5,6 +5,9 @@ import { useT } from '../lib/theme';
 import { dailyEncouragement } from '../lib/encouragements';
 import { Icon, Icons, useIsNarrow, useIsMobile, AnimatedNumber } from './ui';
 import { Skeleton } from './Skeleton';
+import { CompanionCat, RiveAnim } from './RiveAnim';
+import { FlowerArt } from './Flowers';
+import { FLOWERS } from '../lib/flowers';
 
 const RESUME_KEY = 'mishkat_quran_last';
 export function saveQuranPosition(surahId: number, surahName: string, ayah: number) {
@@ -50,7 +53,25 @@ async function fetchVerseOfDay(): Promise<Verse | null> {
 
 const FALLBACK_VERSE: Verse = { ar: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ', fr: 'Lis, au nom de ton Seigneur qui a créé.', ref: 'Al-ʿAlaq · 96:1' };
 
-interface Task { id: string; title: string; sub: string; ar?: string; to: string; icon: React.ReactNode; }
+// Couleurs des sections : elles restent les mêmes en thème clair et sombre
+const HUE = { flame: '#E8743B', emerald: '#2E9E6E', lapis: '#3B6FD8', violet: '#8A5CD0', rose: '#D9577A', amber: '#E0A21C' };
+
+type Period = 'aube' | 'jour' | 'apres' | 'soir' | 'nuit';
+const SCENES: Record<Period, { id: string; pos: string; fr: string; ar: string; stars?: boolean }[]> = {
+  aube:  [{ id: 'medine', pos: 'center 64%', fr: 'Médine', ar: 'المدينة' }, { id: 'ghardaia', pos: 'center 62%', fr: 'Ghardaïa', ar: 'غرداية' }],
+  jour:  [{ id: 'casbah', pos: 'center 50%', fr: 'Casbah d\'Alger', ar: 'القصبة' }, { id: 'arcades', pos: 'center 55%', fr: 'Arcades', ar: 'أقواس' }],
+  apres: [{ id: 'kaaba-crepuscule', pos: 'center 70%', fr: 'La Mecque', ar: 'مكة' }, { id: 'balcon-alger', pos: 'center 52%', fr: 'Baie d\'Alger', ar: 'الجزائر' }, { id: 'timimoun', pos: 'center 72%', fr: 'Timimoun', ar: 'تيميمون' }],
+  soir:  [{ id: 'alger-mosquee', pos: 'center 66%', fr: 'Djamaa el Djazaïr', ar: 'جامع الجزائر' }, { id: 'dunes', pos: 'center 70%', fr: 'Le Sahara', ar: 'الصحراء' }],
+  nuit:  [{ id: 'haram-nuit', pos: 'center 62%', fr: 'Al-Haram', ar: 'الحرم' }, { id: 'tassili', pos: 'center 50%', fr: 'Tassili n\'Ajjer', ar: 'الطاسيلي', stars: true }],
+};
+const periodOf = (h: number): Period => h >= 4 && h < 7 ? 'aube' : h < 15 && h >= 7 ? 'jour' : h >= 15 && h < 18 ? 'apres' : h >= 18 && h < 20 ? 'soir' : 'nuit';
+const GREET: Record<Period, [string, string]> = {
+  aube: ['Belle aube', 'فجر مبارك'], jour: ['Belle journée', 'يوم سعيد'], apres: ['Bel après-midi', 'مساء طيب'], soir: ['Bonne soirée', 'مساء الخير'], nuit: ['Douce nuit', 'ليلة هادئة'],
+};
+// Étoiles fixes (pas d'aléatoire : même ciel à chaque rendu)
+const STARS = Array.from({ length: 46 }, (_, i) => ({ x: (i * 37.7) % 100, y: ((i * 53.3) % 62), r: 0.6 + ((i * 7) % 5) / 4, d: (i % 7) * 0.6 }));
+
+interface Task { id: string; title: string; sub: string; ar?: string; to: string; icon: React.ReactNode; hue: string; }
 
 const todayKey = () => new Date().toISOString().split('T')[0];
 const dayIndex = () => Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 864e5);
@@ -62,19 +83,19 @@ function buildSession(d: UserData, fr: boolean, resume: ReturnType<typeof loadQu
   const n = Math.min(3, reviews.length);
   for (let k = 0; k < n; k++) {
     const s = reviews[(dayIndex() + k) % reviews.length];
-    tasks.push({ id: `review-${s.id}`, title: fr ? `Réviser ${s.name}` : `مراجعة ${s.arabicName}`, sub: `${s.verses} ${fr ? 'versets' : 'آية'}`, ar: s.arabicName, to: 'memorization', icon: Icons.refresh });
+    tasks.push({ id: `review-${s.id}`, title: fr ? `Réviser ${s.name}` : `مراجعة ${s.arabicName}`, sub: `${s.verses} ${fr ? 'versets' : 'آية'}`, ar: s.arabicName, to: 'memorization', icon: Icons.refresh, hue: HUE.emerald });
   }
   const current = d.surahs.find(s => s.status === 'in_progress');
   const next = current ?? d.surahs.find(s => s.status === 'not_started');
   if (next) tasks.push({
     id: `hifz-${next.id}`,
     title: fr ? `${current ? 'Continuer' : 'Commencer'} ${next.name}` : `${current ? 'متابعة' : 'بدء'} ${next.arabicName}`,
-    sub: fr ? `Mémorisation · ${next.verses} versets` : `الحفظ · ${next.verses} آية`, ar: next.arabicName, to: 'memorization', icon: Icons.book,
+    sub: fr ? `Mémorisation · ${next.verses} versets` : `الحفظ · ${next.verses} آية`, ar: next.arabicName, to: 'memorization', icon: Icons.book, hue: HUE.amber,
   });
-  if (resume) tasks.push({ id: 'read', title: fr ? 'Reprendre la lecture' : 'متابعة القراءة', sub: `${resume.surahName} · v.${resume.ayah}`, to: 'quran', icon: Icons.bookmark });
+  if (resume) tasks.push({ id: 'read', title: fr ? 'Reprendre la lecture' : 'متابعة القراءة', sub: `${resume.surahName} · v.${resume.ayah}`, to: 'quran', icon: Icons.bookmark, hue: HUE.lapis });
   const morning = new Date().getHours() < 15;
-  tasks.push({ id: morning ? 'adhkar-matin' : 'adhkar-soir', title: fr ? (morning ? 'Adhkâr du matin' : 'Adhkâr du soir') : (morning ? 'أذكار الصباح' : 'أذكار المساء'), sub: fr ? '8 invocations · 5 min' : '8 أذكار · 5 دقائق', to: 'adhkar', icon: Icons.moon });
-  tasks.push({ id: 'tasbih', title: fr ? '33 × Subhân Allâh' : 'سبحان الله ×33', sub: fr ? 'Tasbih' : 'التسبيح', to: 'tasbih', icon: Icons.beads });
+  tasks.push({ id: morning ? 'adhkar-matin' : 'adhkar-soir', title: fr ? (morning ? 'Adhkâr du matin' : 'Adhkâr du soir') : (morning ? 'أذكار الصباح' : 'أذكار المساء'), sub: fr ? '8 invocations · 5 min' : '8 أذكار · 5 دقائق', to: 'adhkar', icon: Icons.moon, hue: morning ? HUE.flame : HUE.rose });
+  tasks.push({ id: 'tasbih', title: fr ? '33 × Subhân Allâh' : 'سبحان الله ×33', sub: fr ? 'Tasbih' : 'التسبيح', to: 'tasbih', icon: Icons.beads, hue: HUE.violet });
   return tasks;
 }
 
@@ -158,11 +179,98 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
   const C = 2 * Math.PI * 34;
 
   const stats = [
-    { icon: Icons.flame,    value: streak,         suffix: '',     label: fr ? 'Jours de suite'    : 'يوم متواصل', to: 'calendar' },
-    { icon: Icons.book,     value: totalVersets,   suffix: '',     label: fr ? 'Versets mémorisés' : 'آية محفوظة', to: 'memorization' },
-    { icon: Icons.bookmark, value: memorizedCount, suffix: '/114', label: fr ? 'Sourates'          : 'سورة',       to: 'memorization' },
-    { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, suffix: '', label: fr ? 'Trophées' : 'وسام', to: 'badges' },
+    { icon: Icons.flame,    value: streak,         suffix: '',     label: fr ? 'Jours de suite'    : 'يوم متواصل', to: 'calendar', hue: HUE.flame },
+    { icon: Icons.book,     value: totalVersets,   suffix: '',     label: fr ? 'Versets mémorisés' : 'آية محفوظة', to: 'memorization', hue: HUE.emerald },
+    { icon: Icons.bookmark, value: memorizedCount, suffix: '/114', label: fr ? 'Sourates'          : 'سورة',       to: 'memorization', hue: HUE.lapis },
+    { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, suffix: '', label: fr ? 'Trophées' : 'وسام', to: 'badges', hue: HUE.violet },
   ];
+
+  // ── Grande image du moment ──
+  const period = periodOf(nowTime.getHours());
+  const scenes = SCENES[period];
+  const scene = scenes[dayIndex() % scenes.length];
+  const starry = !!scene.stars;
+
+  const Hero = (
+    <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}
+      style={{ position: 'relative', overflow: 'hidden', color: '#FFF8EA', minHeight: isMobile ? 330 : 300,
+        margin: isMobile ? '-18px -14px 0' : 0, borderRadius: isMobile ? '0 0 30px 30px' : 26,
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 24px 50px -28px rgba(30,20,4,0.6)', background: '#2a2014' }}>
+      <motion.img key={scene.id} src={`/frames/${scene.id}.jpg`} alt="" aria-hidden="true"
+        initial={{ scale: 1.12, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ scale: { duration: 22, ease: 'easeOut' }, opacity: { duration: 0.9 } }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: scene.pos }}/>
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: isMobile ? 'linear-gradient(180deg, rgba(14,10,4,0.4) 0%, rgba(14,10,4,0) 22%, rgba(14,10,4,0.35) 45%, rgba(14,10,4,0.86) 100%)' : 'linear-gradient(180deg, rgba(14,10,4,0.42) 0%, rgba(14,10,4,0) 30%, rgba(14,10,4,0.2) 55%, rgba(14,10,4,0.8) 100%)' }}/>
+      {starry && (
+        <svg aria-hidden="true" width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+          {STARS.map((st, i) => <circle key={i} className="mk-twinkle" cx={`${st.x}%`} cy={`${st.y}%`} r={st.r} fill="#FFF4D6" style={{ animationDelay: `${st.d}s` }}/>)}
+        </svg>
+      )}
+      {!starry && <div aria-hidden="true" className="mk-glow" style={{ position: 'absolute', width: '70%', height: '120%', top: '-40%', left: '-10%', background: 'radial-gradient(closest-side, rgba(255,226,160,0.35), transparent)', pointerEvents: 'none' }}/>}
+
+      <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '18px 18px 0' : '20px 24px 0', gap: 10 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: 'rgba(20,14,6,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', fontSize: 12.5, border: '1px solid rgba(255,255,255,0.18)' }}>
+          <span aria-hidden="true">📍</span>{fr ? scene.fr : scene.ar}
+        </span>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => onNavigate?.('settings')} aria-label={fr ? 'Réglages' : 'الإعدادات'}
+          style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,248,234,0.22)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 19, color: '#FFF8EA', cursor: 'pointer', flexShrink: 0 }}>
+          {username.charAt(0).toUpperCase()}
+        </motion.button>
+      </div>
+
+      <div style={{ position: 'relative', padding: isMobile ? '0 20px 24px' : '0 28px 26px', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14 }}>
+        <div style={{ minWidth: 0, maxWidth: 620, textShadow: '0 2px 14px rgba(0,0,0,0.45)' }}>
+          <div style={{ fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.85, display: 'flex', flexWrap: 'wrap', gap: '0 8px' }}>
+            <span>{dateStr}</span>{hijri && <span style={{ color: '#F3D58A' }}>· {hijri}</span>}
+          </div>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 360, fontSize: isMobile ? 32 : 40, margin: '6px 0 0', letterSpacing: '-0.015em', lineHeight: 1.08 }}>
+            {fr ? 'As-salâmu ʿalaykum,' : 'السلام عليكم،'}<br/><span style={{ color: '#F3D58A', fontStyle: 'italic' }}>{username}</span>
+          </h1>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.6 }}
+            style={{ margin: '8px 0 0', fontSize: 15, lineHeight: 1.45, opacity: 0.92 }}>{GREET[period][fr ? 0 : 1]} · {message}</motion.p>
+        </div>
+        {nextPrayer && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 16, background: 'rgba(20,14,6,0.38)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.18)' }}>
+            <Icon d={Icons.moon} size={18} color="#F3D58A"/>
+            <span style={{ fontSize: 14 }}><b style={{ fontWeight: 600 }}>{fr ? nextPrayer.name : nextPrayer.nameAr}</b> · {nextPrayer.time}
+              <span style={{ opacity: 0.75 }}> · {fr ? 'dans ' : 'بعد '}{Math.floor(nextPrayer.minsLeft / 60) > 0 ? `${Math.floor(nextPrayer.minsLeft / 60)} h ` : ''}{nextPrayer.minsLeft % 60} min</span></span>
+          </div>
+        )}
+      </div>
+    </motion.section>
+  );
+
+  // ── Vignettes à découvrir ──
+  const gardenFlowers = [FLOWERS[1], FLOWERS[3], FLOWERS[4]];
+  const explore = [
+    { to: 'studio', fr: 'Créer un post', ar: 'أنشئ منشوراً', sub: fr ? 'Pour la famille' : 'للعائلة', img: '/frames/kaaba-crepuscule.jpg', pos: 'center 70%' },
+    { to: 'garden', fr: 'Mon jardin', ar: 'حديقتي', sub: fr ? 'Tes fleurs' : 'أزهارك', img: null, pos: '' },
+    { to: 'adhkar', fr: 'Adhkâr', ar: 'الأذكار', sub: fr ? 'Matin et soir' : 'الصباح والمساء', img: '/frames/doua-mains.jpg', pos: 'center 60%' },
+    { to: 'diftar', fr: 'Mon Diftar', ar: 'دفتري', sub: fr ? 'Écrire, dessiner' : 'اكتب وارسم', img: '/frames/balcon-alger.jpg', pos: 'center 62%' },
+  ];
+  const Explore = (
+    <section aria-label={fr ? 'À découvrir' : 'اكتشف'} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={eyebrow}>{fr ? 'À découvrir' : 'اكتشف'}</div>
+      <div className="no-scrollbar" style={{ display: 'grid', gridAutoFlow: narrow ? 'column' : 'row', gridAutoColumns: narrow ? '42%' : undefined, gridTemplateColumns: narrow ? undefined : 'repeat(4, minmax(0, 1fr))', gap: 10, overflowX: narrow ? 'auto' : 'visible', margin: narrow ? '0 -14px' : 0, padding: narrow ? '0 14px 4px' : 0, scrollSnapType: 'x mandatory' }}>
+        {explore.map((e, i) => (
+          <motion.button key={e.to} onClick={() => onNavigate?.(e.to)}
+            initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.96 }}
+            style={{ position: 'relative', height: isMobile ? 168 : 150, borderRadius: 20, overflow: 'hidden', border: 'none', padding: 0, cursor: 'pointer', scrollSnapAlign: 'start', color: '#FFF8EA', textAlign: fr ? 'left' : 'right',
+              background: e.img ? '#2a2014' : 'linear-gradient(160deg, #3FA374, #1F6B47)', boxShadow: '0 14px 28px -18px rgba(30,20,4,0.7)' }}>
+            {e.img
+              ? <img src={e.img} alt="" aria-hidden="true" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: e.pos }}/>
+              : <span aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, paddingBottom: 34 }}>
+                  {gardenFlowers.map((f, k) => <span key={f.id} style={{ transform: `translateY(${k === 1 ? -10 : 4}px)`, margin: '0 -6px' }}><FlowerArt f={f} size={k === 1 ? 62 : 50} animate/></span>)}
+                </span>}
+            <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(12,8,2,0.72))' }}/>
+            <span style={{ position: 'absolute', left: 14, right: 14, bottom: 12 }}>
+              <span style={{ display: 'block', fontFamily: 'Fraunces, serif', fontSize: 18, lineHeight: 1.1 }}>{fr ? e.fr : e.ar}</span>
+              <span style={{ display: 'block', fontSize: 12.5, opacity: 0.85, marginTop: 2 }}>{e.sub}</span>
+            </span>
+          </motion.button>
+        ))}
+      </div>
+    </section>
+  );
 
   const Session = (
     <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
@@ -181,7 +289,7 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
             {doneCount}<span style={{ fontSize: 13, color: t.inkMute }}>/{tasks.length}</span>
           </div>
         </div>
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={eyebrow}>{fr ? 'Ta séance du jour' : 'جلسة اليوم'}</div>
           <h2 style={{ margin: '6px 0 0', fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: isMobile ? 22 : 26, color: t.ink, lineHeight: 1.15 }}>
             {allDone
@@ -189,6 +297,7 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
               : (fr ? `${tasks.length - doneCount} étape${tasks.length - doneCount > 1 ? 's' : ''} pour aujourd'hui` : `${tasks.length - doneCount} خطوات لليوم`)}
           </h2>
         </div>
+        <CompanionCat size={isMobile ? 96 : 120} style={{ margin: isMobile ? '-20px -14px -20px -10px' : '-28px -16px -28px 0' }}/>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -207,13 +316,16 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
               </button>
               <button onClick={() => onNavigate?.(task.to)}
                 style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', textAlign: fr ? 'left' : 'right', padding: 0, color: t.ink }}>
+                <span style={{ width: 40, height: 40, borderRadius: 13, background: `${task.hue}1f`, color: task.hue, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: on ? 0.55 : 1, transition: 'opacity .3s' }}>
+                  <Icon d={task.icon} size={19} stroke={1.9}/>
+                </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: on ? t.inkMute : t.ink, textDecoration: on ? 'line-through' : 'none', textDecorationColor: t.accent, transition: 'color .3s' }}>{task.title}</span>
                   <span style={{ display: 'block', fontSize: 13, color: t.inkMute, marginTop: 1 }}>{task.sub}</span>
                 </span>
                 {task.ar
                   ? <span style={{ fontFamily: "'Amiri Quran', Amiri, serif", fontSize: 20, color: on ? t.inkMute : t.accent, flexShrink: 0 }} lang="ar">{task.ar}</span>
-                  : <span style={{ color: t.inkMute, flexShrink: 0, display: 'inline-flex' }}><Icon d={task.icon} size={18}/></span>}
+                  : null}
                 <span style={{ color: t.inkMute, display: 'inline-flex', transform: fr ? 'none' : 'scaleX(-1)' }}><Icon d={Icons.arrow} size={14}/></span>
               </button>
             </motion.div>
@@ -229,8 +341,14 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
         <motion.button key={s.label} onClick={() => onNavigate?.(s.to)}
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05, duration: 0.4 }}
           whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
-          style={{ ...card, borderRadius: 16, padding: '14px 16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, cursor: 'pointer', textAlign: 'left', color: t.ink }}>
-          <span style={{ color: t.accent, display: 'inline-flex' }}><Icon d={s.icon} size={18}/></span>
+          style={{ ...card, position: 'relative', overflow: 'hidden', borderRadius: 18, padding: '14px 16px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, cursor: 'pointer', textAlign: fr ? 'left' : 'right', color: t.ink,
+            background: `linear-gradient(150deg, ${s.hue}1c, ${s.hue}08 70%), ${t.card}`, borderColor: `${s.hue}33` }}>
+          {(() => {
+            const badge = <span style={{ width: 34, height: 34, borderRadius: '50%', background: s.hue, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 14px -6px ${s.hue}` }}><Icon d={s.icon} size={17} stroke={2}/></span>;
+            return i === 0
+              ? <>{badge}<RiveAnim src="/rive/flamme.riv" animation="Normal" size={isMobile ? 96 : 104} style={{ position: 'absolute', top: -6, insetInlineEnd: -10, pointerEvents: 'none' }}/></>
+              : badge;
+          })()}
           <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, fontWeight: 360, lineHeight: 1 }}>
             <AnimatedNumber value={s.value}/>{s.suffix && <span style={{ fontSize: 14, color: t.inkMute }}>{s.suffix}</span>}
           </span>
@@ -327,28 +445,13 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
     <div style={{ height: '100%', overflowY: 'auto', direction: fr ? 'ltr' : 'rtl' }} className="no-scrollbar">
       <div style={{ padding: isMobile ? '18px 14px 100px' : narrow ? '18px 16px 24px' : '28px 28px 32px', display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 1180, margin: '0 auto' }}>
 
-        {/* ── En-tête ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ ...eyebrow, display: 'flex', flexWrap: 'wrap', gap: '0 8px' }}>
-              <span>{dateStr}</span>{hijri && <span style={{ color: t.accent }}>· {hijri}</span>}
-            </div>
-            <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 360, fontSize: isMobile ? 30 : 38, margin: '8px 0 0', color: t.ink, letterSpacing: '-0.015em', lineHeight: 1.1 }}>
-              {fr ? 'As-salâmu ʿalaykum, ' : 'السلام عليكم، '}<span style={{ color: t.accent, fontStyle: 'italic' }}>{username}</span>
-            </h1>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.6 }}
-              style={{ margin: '10px 0 0', fontSize: 15, color: t.inkDim, lineHeight: 1.5, maxWidth: 560 }}>{message}</motion.p>
-          </div>
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => onNavigate?.('settings')} aria-label={fr ? 'Réglages' : 'الإعدادات'}
-            style={{ width: 44, height: 44, borderRadius: 14, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 19, color: '#1a0f00', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
-            {username.charAt(0).toUpperCase()}
-          </motion.button>
-        </div>
+        {Hero}
 
         {narrow ? (
           <>
             {Session}
             {Stats}
+            {Explore}
             {Prayer}
             {Week}
             {VerseCard}
@@ -357,6 +460,7 @@ export const Dashboard = ({ userData, setUserData, lang, onNavigate }: Dashboard
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)', gap: 18, alignItems: 'start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {Session}
+              {Explore}
               {VerseCard}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>

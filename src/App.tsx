@@ -406,7 +406,7 @@ export default function App() {
   if (!authChecked && !localOnly) {
     return (
       <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <LanternMark size={48} color={isDark ? '#d4a64a' : '#c8962a'}/>
+        <img src="/icon-192.png" alt="Mishkat" width={72} height={72} style={{ borderRadius: 20, animation: 'mk-breathe 1.8s ease-in-out infinite' }}/>
       </div>
     );
   }
@@ -426,7 +426,7 @@ export default function App() {
   if (!userData) {
     return (
       <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <LanternMark size={48} color={isDark ? '#d4a64a' : '#c8962a'}/>
+        <img src="/icon-192.png" alt="Mishkat" width={72} height={72} style={{ borderRadius: 20, animation: 'mk-breathe 1.8s ease-in-out infinite' }}/>
       </div>
     );
   }
@@ -521,7 +521,7 @@ export default function App() {
                   {activeTab === 'quiz'         && <QuizSection lang={lang} />}
                   {activeTab === 'joursblancs'  && <JoursBlancsSection {...commonProps}/>}
                   {activeTab === 'studio'       && <StudioSection userData={userData} lang={lang}/>}
-                  {activeTab === 'garden'       && <GardenSection userData={userData} lang={lang} onNavigate={setActiveTab}/>}
+                  {activeTab === 'garden'       && <GardenSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} onNavigate={setActiveTab}/>}
                   {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
                   {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
                 </div>

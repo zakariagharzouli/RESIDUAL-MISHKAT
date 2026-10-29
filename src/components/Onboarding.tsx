@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useT } from '../lib/theme';
-import { LanternMark, Icon, Icons } from './ui';
+import { Icon, Icons } from './ui';
 
 interface OnboardingProps {
   lang: string;
@@ -36,7 +36,7 @@ export const OnboardingModal = ({ lang, onClose }: OnboardingProps) => {
           <div style={{ padding: '48px 40px 36px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'absolute', inset: -20, borderRadius: '50%', background: `radial-gradient(circle, ${t.accent}18 0%, transparent 70%)` }}/>
-              <LanternMark size={80} color={t.accent}/>
+              <img src="/icon-192.png" alt="Mishkat" width={88} height={88} style={{ position: 'relative', borderRadius: 24, boxShadow: '0 12px 28px -10px rgba(30,20,4,0.5)' }}/>
             </div>
 
             <div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useT } from '../lib/theme';
-import { LanternMark, Icon, Icons, PoweredBy } from './ui';
+import { Icon, Icons, PoweredBy } from './ui';
 import { signIn, signUp } from '../lib/supabase';
 
 interface AuthProps {
@@ -13,6 +13,8 @@ export const SESSION_ALIVE_KEY = 'mishkat_session_alive';
 
 export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
   const t = useT();
+  // Le fond doré n'est utilisé qu'avec un thème clair
+  const isLightTheme = (() => { const h = t.bg.replace('#', ''); const v = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] > 140; })();
   const [mode, setMode]         = useState<'login' | 'signup'>('login');
   const [email, setEmail]       = useState(() => localStorage.getItem(REMEMBER_KEY) ?? '');
   const [password, setPassword] = useState('');
@@ -80,24 +82,33 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
 
       {/* Left — image hero (desktop only, hidden on tablet/mobile) */}
       <div className="hidden lg:flex" style={{ flex: 1, position: 'relative', overflow: 'hidden', borderRight: `1px solid ${t.line}` }}>
-        <img src="/login-bg.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}/>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.22)' }}/>
+        <img src="/login-bg.jpg" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 60%' }}/>
+        {/* Voile en haut et en bas pour que le logo et la devise se lisent sur le mur clair */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(28,18,6,0.62) 0%, rgba(28,18,6,0.12) 32%, rgba(28,18,6,0) 55%, rgba(28,18,6,0.55) 100%)' }}/>
         <div style={{ position: 'relative', width: '100%', padding: '50px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <LanternMark size={40} color="#f5e6b8"/>
+            <img src="/icon-192.png" alt="" width={52} height={52} style={{ borderRadius: 14, boxShadow: '0 8px 20px -8px rgba(0,0,0,0.6)' }}/>
             <div>
-              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: '#fff', fontWeight: 300 }}>Mishkat</div>
+              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: '#fff', fontWeight: 400 }}>Mishkat</div>
               <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.32em', textTransform: 'uppercase' }}>مِشْكَاة · حِفْظ القرآن</div>
             </div>
           </div>
-          <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-            Une lanterne pour la mémoire du cœur
+          <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 22, color: 'rgba(255,255,255,0.92)', maxWidth: 420, lineHeight: 1.35 }}>
+            {fr ? 'Une lanterne pour la mémoire du cœur.' : 'مشكاة لذاكرة القلب.'}
           </div>
         </div>
       </div>
 
       {/* Right — form (full width on mobile/tablet, 440px on desktop) */}
-      <div style={{ width: '100%', maxWidth: 440, padding: 'clamp(24px, 5vw, 48px) clamp(20px, 5vw, 40px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: t.bgSoft, overflowY: 'auto', flex: 'none' }}>
+      <div className="mk-auth-form" style={{ width: '100%', maxWidth: 440, margin: '0 auto', padding: 'clamp(24px, 5vw, 48px) clamp(20px, 5vw, 40px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto', flex: 'none', position: 'relative',
+        background: isLightTheme ? `linear-gradient(${t.bgSoft}cc, ${t.bgSoft}f2), url(/login-bg-mobile.jpg) top center / cover` : t.bgSoft }}>
+        <div className="lg:hidden" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26 }}>
+          <img src="/icon-192.png" alt="" width={48} height={48} style={{ borderRadius: 13, boxShadow: '0 8px 20px -10px rgba(30,20,4,0.6)' }}/>
+          <div>
+            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, color: t.ink, lineHeight: 1 }}>Mishkat</div>
+            <div style={{ fontSize: 12, color: t.inkMute, marginTop: 4 }} lang="ar">مِشْكَاة · حِفْظ القرآن</div>
+          </div>
+        </div>
         <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
           {fr ? 'Bienvenue' : 'أهلاً وسهلاً'}
         </div>
