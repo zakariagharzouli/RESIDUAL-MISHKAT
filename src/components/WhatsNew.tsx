@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, PoweredBy } from './ui';
 
 // Changer cette clé à chaque grosse mise à jour pour la réannoncer à tout le monde
 export const WHATS_NEW_KEY = 'mishkat_whats_new_2026_11';
@@ -67,6 +67,7 @@ export const WhatsNew = ({ name, lang, onClose }: Props) => {
             {fr ? 'Voir mes trophées' : 'شاهد أوسمتي'}
           </button>
         </div>
+        <div style={{ marginTop: 16 }}><PoweredBy lang={lang}/></div>
       </motion.div>
     </motion.div>
   );

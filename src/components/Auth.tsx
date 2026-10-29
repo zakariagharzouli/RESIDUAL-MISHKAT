@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useT } from '../lib/theme';
-import { LanternMark, Icon, Icons } from './ui';
+import { LanternMark, Icon, Icons, PoweredBy } from './ui';
 import { signIn, signUp } from '../lib/supabase';
 
 interface AuthProps {
@@ -197,6 +197,7 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
             {fr ? 'Installer l\'appli sur l\'écran d\'accueil' : 'تثبيت التطبيق على الشاشة الرئيسية'}
           </button>
         </div>
+        <div style={{ marginTop: 22 }}><PoweredBy lang={lang}/></div>
       </div>
 
       {/* PWA install modal */}

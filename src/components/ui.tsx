@@ -317,6 +317,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
                   );
                 })}
               </div>
+              <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${t.lineSoft}` }}><PoweredBy lang={lang}/></div>
             </div>
           </div>
         )}
@@ -412,8 +413,8 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
 
       {/* Footer credits */}
       <div style={{ padding: '10px 8px', borderTop: `1px solid ${t.lineSoft}` }}>
-        <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em' }}>Artisans du Savoir</div>
-        <div style={{ fontSize: 10, color: t.inkMute, opacity: 0.6, marginTop: 2 }}>Rahima · @hamda_wa_chakra</div>
+        <PoweredBy lang={lang} align="start"/>
+        <div style={{ fontSize: 10, color: t.inkMute, opacity: 0.7, marginTop: 4 }}>Rahima · @hamda_wa_chakra</div>
       </div>
     </aside>
   );
@@ -535,4 +536,28 @@ export const AnimatedNumber = ({ value, duration = 900 }: { value: number; durat
     return () => cancelAnimationFrame(raf);
   }, [value, duration]);
   return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{shown}</span>;
+};
+
+// ── Residual Labs : symbole (six atomes en forme de R) ───────────────────────
+export const RL_NODES: [number, number, number][] = [[32.2, 13.3, 6.4], [14.8, 28.5, 6.4], [16, 51.7, 6.4], [48, 26.8, 6.4], [33.5, 40.6, 5.6], [48.2, 52.7, 6.4]];
+export const ResidualMark = ({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" fill={color} aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path d="M32.2 13.3L14.8 28.5L16 51.7M32.2 13.3L48 26.8L33.5 40.6L48.2 52.7" stroke={color} strokeWidth="5" strokeLinecap="round" fill="none"/>
+    {RL_NODES.map(([x, y, r]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={r}/>)}
+  </svg>
+);
+
+// ── PoweredBy : « Mishkat · propulsé par Residual Labs » ─────────────────────
+export const PoweredBy = ({ lang = 'fr', align = 'center' }: { lang?: string; align?: 'center' | 'start' }) => {
+  const t = useT();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: align === 'center' ? 'center' : 'flex-start', flexWrap: 'wrap', gap: 6, fontSize: 11.5, color: t.inkMute, lineHeight: 1.35 }}>
+      <span style={{ fontFamily: 'Fraunces, serif', color: t.inkDim }}>Mishkat</span>
+      <span>{lang === 'ar' ? 'بدعم من' : 'propulsé par'}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: t.ink }}>
+        <ResidualMark size={14}/>
+        <span style={{ fontWeight: 600, fontSize: 10.5, letterSpacing: '0.12em' }}>RESIDUAL LABS</span>
+      </span>
+    </div>
+  );
 };
